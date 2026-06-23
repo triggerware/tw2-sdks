@@ -1,0 +1,12 @@
+[package]
+name = "triggerware"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+rustsonrpc = { git = "https://github.com/GodOfAvacyn/rustsonrpc.git", rev = "2c09b3f64c060c23488b8f9a11776ccb7fcd597f" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+serde_with = "3"
+tokio = { version = "1", features = ["net"] }

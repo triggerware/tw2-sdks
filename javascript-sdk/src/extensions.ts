@@ -1,0 +1,124 @@
+import type { Peer } from "npmsonrpc"
+import type { JsonObject, Runtime } from "./types.js"
+import { definedParams } from "./utils.js"
+
+export type ExtensionRuntime = Runtime
+
+export interface Extension {
+  readonly name: string
+  readonly tag?: string
+  readonly config: JsonObject | null
+  readonly connectors: string[]
+}
+
+export interface ExtensionDescription {
+  description: string
+  configSchema: JsonObject
+  runtime?: ExtensionRuntime
+  dependencies?: string[]
+  connectors: string[]
+}
+
+interface ExtensionDescriptionWire {
+  description: string
+  config_schema: JsonObject
+  runtime?: ExtensionRuntime
+  dependencies?: string[]
+  connectors: string[]
+}
+
+export interface ExtensionInstall {
+  name?: string
+  url?: string
+  tag?: string
+  config?: JsonObject
+}
+
+export interface ExtensionReference {
+  name?: string
+  url?: string
+}
+
+interface ExtensionList {
+  extensions: string[]
+}
+
+interface ExtensionInstallResponse {
+  connectors: string[]
+}
+
+interface ExtensionWire {
+  config: JsonObject | null
+  connectors: string[]
+}
+
+export class ExtensionsService {
+  readonly #peer: Peer
+
+  constructor(peer: Peer) {
+    this.#peer = peer
+  }
+
+  async install(install: ExtensionInstall): Promise<string[]> {
+    const response = await this.#peer.call<ExtensionInstallResponse>(
+      "extensions.install",
+      extensionParams({ ...install, config: install.config ?? {} }),
+    )
+    return response.connectors
+  }
+
+  async get(name: string, options: { tag?: string } = {}): Promise<Extension> {
+    const response = await this.#peer.call<ExtensionWire>(
+      "extensions.get",
+      extensionParams({ name, tag: options.tag }),
+    )
+    return {
+      name,
+      tag: options.tag,
+      config: response.config,
+      connectors: response.connectors,
+    }
+  }
+
+  async list(): Promise<string[]> {
+    const response = await this.#peer.call<ExtensionList>("extensions.list")
+    return response.extensions
+  }
+
+  configure(name: string, config: JsonObject, options: { tag?: string } = {}): Promise<void> {
+    return this.#peer.call<void>(
+      "extensions.configure",
+      extensionParams({ name, tag: options.tag, config }),
+    )
+  }
+
+  async catalog(): Promise<string[]> {
+    const response = await this.#peer.call<ExtensionList>("extensions.catalog")
+    return response.extensions
+  }
+
+  async describe(reference: ExtensionReference): Promise<ExtensionDescription> {
+    const response = await this.#peer.call<ExtensionDescriptionWire>(
+      "extensions.describe",
+      extensionParams(reference),
+    )
+    return {
+      description: response.description,
+      configSchema: response.config_schema,
+      runtime: response.runtime,
+      dependencies: response.dependencies,
+      connectors: response.connectors,
+    }
+  }
+
+  uninstall(name: string, options: { tag?: string } = {}): Promise<void> {
+    return this.#peer.call<void>(
+      "extensions.uninstall",
+      extensionParams({ name, tag: options.tag }),
+    )
+  }
+}
+
+function extensionParams(values: ExtensionInstall | ExtensionReference): JsonObject {
+  return definedParams(values as JsonObject)
+}

@@ -1,0 +1,28 @@
+{
+  "name": "triggerware",
+  "version": "0.1.0",
+  "description": "Modern TypeScript SDK for Triggerware",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "npmsonrpc": "file:../../jsonrpc/npmsonrpc",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.0"
+  }
+}
