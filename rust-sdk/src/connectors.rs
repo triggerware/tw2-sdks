@@ -118,7 +118,7 @@ impl ConnectorsService {
         runtime: ConnectorRuntime,
     ) -> Result<Connector> {
         let name = name.into();
-        let mut params = DynamicParams::empty()
+        let mut params = params!()
             .with("name", name.clone())?
             .with("runtime", runtime)?;
 

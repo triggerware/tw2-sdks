@@ -1,5 +1,6 @@
 use std::sync::Arc;
 
+use rustsonrpc::DynamicParams;
 use rustsonrpc::prelude::*;
 use serde::{Deserialize, Serialize};
 

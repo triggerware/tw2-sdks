@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use rustsonrpc::prelude::*;
+use rustsonrpc::{DynamicParams, prelude::*};
 use serde::{Deserialize, Serialize};
 
 use crate::prelude::RunOptions;

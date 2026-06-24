@@ -84,7 +84,7 @@ impl ExtensionsService {
     ) -> Result<Extension> {
         let name = name.into();
         let tag = tag.map(Into::into);
-        let mut params = DynamicParams::empty().with("name", name.clone())?;
+        let mut params = params!().with("name", name.clone())?;
         if let Some(tag) = tag.clone() {
             params = params.with("tag", tag)?;
         }
@@ -113,7 +113,7 @@ impl ExtensionsService {
     where
         C: Serialize,
     {
-        let mut params = DynamicParams::empty()
+        let mut params = params!()
             .with("name", name.into())?
             .with("config", config)?;
         if let Some(tag) = tag {
@@ -140,7 +140,7 @@ impl ExtensionsService {
         name: impl Into<String>,
         tag: Option<impl Into<String>>,
     ) -> Result<()> {
-        let mut params = DynamicParams::empty().with("name", name.into())?;
+        let mut params = params!().with("name", name.into())?;
         if let Some(tag) = tag {
             params = params.with("tag", tag.into())?;
         }
