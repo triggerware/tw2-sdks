@@ -20,10 +20,18 @@ def version(manifest):
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--first", action="store_true")
+parser.add_argument("message")
 args = parser.parse_args()
 
+if out("git", "branch", "--show-current") != "main":
+    raise SystemExit("deploy/prod: must run from main")
+
+sh("git", "add", ".")
 if out("git", "status", "--porcelain"):
-    raise SystemExit("deploy/prod: refusing to publish with a dirty worktree")
+    sh("git", "commit", "-m", args.message)
+    sh("git", "push", "origin", "main")
+else:
+    print("No source changes to commit")
 
 for name, manifest in SDKS:
     tag = (out("git", "tag", "--list", f"{name}/v*", "--sort=-v:refname").splitlines() or [None])[0]
@@ -46,3 +54,5 @@ for name, manifest in SDKS:
         sh("git", "commit", "-m", f"Release {name} v{new}")
     sh("git", "tag", f"{name}/v{new}")
     print(f"Published {name} {old} -> {new}")
+
+sh("git", "push", "origin", "main", "--tags")
