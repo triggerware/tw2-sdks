@@ -567,9 +567,9 @@ dependencies = [
 
 [[package]]
 name = "rustsonrpc"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b5a91158bb373ff9db9ba7ad12500b7ffa001c64a2b4a67aa86cd5c4f4d09077"
+checksum = "9c9c5fe098d9a2dc3cc5771a4e81a549dfe0bdadaf67d97fec000b134e51c20b"
 dependencies = [
  "async-trait",
  "futures-util",
@@ -582,9 +582,9 @@ dependencies = [
 
 [[package]]
 name = "rustsonrpc-macros"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0d631b4203258fbdd3d40ca77ac2273d473c642911f09504f1dbec81814f4c3b"
+checksum = "0ac85d2783a7f0c2b77269e51f813dc10f2df478ed972fbde2e3ce4207b2f5e5"
 dependencies = [
  "proc-macro2",
  "quote",
