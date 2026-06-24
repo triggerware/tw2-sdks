@@ -84,8 +84,10 @@ impl Cursor {
         if self.exhausted {
             return Ok(vec![])
         }
-        let params = self.config.with_params(params!({"cursor": self.id}))?;
-        let fetch: CursorFetch = self.peer()?.call("cursors.fetch", params).await?;
+        let fetch: CursorFetch = self
+            .peer()?
+            .call("cursors.fetch", params!({"cursor": self.id}))
+            .await?;
 
         self.exhausted = fetch.exhausted;
         self.cache.extend(fetch.rows.clone());

@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+import argparse, re, subprocess
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST = ROOT / "Cargo.toml"
+
+def read_version():
+    return re.search(r'^version = "([^"]+)"', MANIFEST.read_text(), re.M).group(1)
+
+def bump(v, part):
+    major, minor, patch = map(int, v.split("."))
+    if part == "major":
+        return f"{major + 1}.0.0"
+    if part == "minor":
+        return f"{major}.{minor + 1}.0"
+    return f"{major}.{minor}.{patch + 1}"
+
+def set_version(old, new):
+    MANIFEST.write_text(MANIFEST.read_text().replace(f'version = "{old}"', f'version = "{new}"', 1))
+
+p = argparse.ArgumentParser()
+release = p.add_mutually_exclusive_group()
+release.add_argument("--minor", action="store_true")
+release.add_argument("--major", action="store_true")
+release.add_argument("--first", action="store_true")
+args = p.parse_args()
+
+part = "major" if args.major else "minor" if args.minor else "patch"
+old = read_version()
+new = old if args.first else bump(old, part)
+
+set_version(old, new)
+subprocess.run(["cargo", "publish"], cwd=ROOT, check=True)

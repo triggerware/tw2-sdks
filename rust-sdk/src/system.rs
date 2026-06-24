@@ -12,6 +12,14 @@ pub struct Health {
     pub status: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemUpdate {
+    pub runtimes: Vec<String>,
+    pub extension: String,
+    pub artifact: String,
+    pub restart_required: bool,
+}
+
 #[derive(Debug, Clone, Deserialize)]
 struct AuthorizationStatus {
     pub ok: bool,
@@ -24,6 +32,10 @@ impl SystemService {
 
     pub async fn health(&self) -> Result<Health> {
         self.peer.call("system.health", ()).await
+    }
+
+    pub async fn update(&self) -> Result<SystemUpdate> {
+        self.peer.call("system.update", ()).await
     }
 
     pub async fn authorize(&self, api_key: impl Into<String>) -> Result<bool> {

@@ -27,6 +27,12 @@ pub struct ExtensionDescription {
     pub connectors: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ExtensionCatalogEntry {
+    pub name: String,
+    pub description: String,
+}
+
 #[derive(Debug, Clone, Copy, Default, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ExtensionRuntime {
@@ -58,8 +64,8 @@ struct ExtensionList {
 }
 
 #[derive(Deserialize)]
-struct ExtensionInstallResponse {
-    connectors: Vec<String>,
+struct ExtensionCatalog {
+    extensions: Vec<ExtensionCatalogEntry>,
 }
 
 impl ExtensionsService {
@@ -67,11 +73,8 @@ impl ExtensionsService {
         ExtensionsService { peer }
     }
 
-    pub async fn install(&self, install: ExtensionInstall) -> Result<Vec<String>> {
-        self.peer
-            .call::<ExtensionInstallResponse>("extensions.install", install)
-            .await
-            .map(|response| response.connectors)
+    pub async fn install(&self, install: ExtensionInstall) -> Result<()> {
+        self.peer.call("extensions.install", install).await
     }
 
     pub async fn get(
@@ -121,9 +124,9 @@ impl ExtensionsService {
             .await
     }
 
-    pub async fn catalog(&self) -> Result<Vec<String>> {
+    pub async fn catalog(&self) -> Result<Vec<ExtensionCatalogEntry>> {
         self.peer
-            .call::<ExtensionList>("extensions.catalog", ())
+            .call::<ExtensionCatalog>("extensions.catalog", ())
             .await
             .map(|response| response.extensions)
     }
