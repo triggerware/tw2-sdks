@@ -19,7 +19,7 @@
     "build": "tsc -p tsconfig.json"
   },
   "dependencies": {
-    "npmsonrpc": "file:../../jsonrpc/npmsonrpc",
+    "npmsonrpc": "file:../../tw2-jsonrpc/npmsonrpc",
     "yaml": "^2.8.1"
   },
   "devDependencies": {

@@ -1,0 +1,17 @@
+[package]
+name = "triggerware"
+version = "1.0.0"
+edition = "2021"
+description = "Rust SDK for Triggerware."
+license = "MIT"
+repository = "https://github.com/GodOfAvacyn/tw2-sdks"
+keywords = ["triggerware", "sdk", "rpc"]
+categories = ["api-bindings", "asynchronous"]
+
+[dependencies]
+tw2-jsonrpc = "1.0.0"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+serde_yaml = "0.9"
+serde_with = "3"
+tokio = { version = "1", features = ["net"] }

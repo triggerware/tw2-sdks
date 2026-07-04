@@ -1,6 +1,6 @@
 All services having to do with `logs` currently are not supported at all. They're not even implemented in code.
 
-Every SDK uses the appropriate JSON-RPC library located at `../jsonrpc/*`. So Rust uses `rustsonrpc`, Python uses `pysonrpc`, etc.
+Every SDK uses the appropriate JSON-RPC library located at `../tw2-jsonrpc/*`. So Rust uses `tw2-jsonrpc`, Python uses `tw2-jsonrpc`, etc.
 
 This doc uses snake_case for most things, but other case forms should be used when the language expects them.
 

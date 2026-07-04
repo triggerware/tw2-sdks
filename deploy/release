@@ -1,0 +1,73 @@
+#!/usr/bin/env python3
+import argparse, os, re, subprocess, sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+SDKS = [
+    ("python", ROOT / "python" / "pyproject.toml"),
+    ("rust", ROOT / "rust" / "Cargo.toml"),
+]
+
+def sh(*args, check=True, **kwargs):
+    kwargs.setdefault("cwd", ROOT)
+    return subprocess.run(args, text=True, check=check, **kwargs)
+
+def out(*args):
+    return sh(*args, stdout=subprocess.PIPE).stdout.strip()
+
+def version(manifest):
+    return re.search(r'^version = "([^"]+)"', manifest.read_text(), re.M).group(1)
+
+def secret(name):
+    return out(
+        "aws", "secretsmanager", "get-secret-value",
+        "--region", "us-east-2",
+        "--secret-id", name,
+        "--query", "SecretString",
+        "--output", "text",
+    )
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--first", action="store_true")
+parser.add_argument("message")
+args = parser.parse_args()
+
+if out("git", "branch", "--show-current") != "main":
+    raise SystemExit("deploy/release: must run from main")
+
+sh("git", "add", ".")
+if out("git", "status", "--porcelain"):
+    sh("git", "commit", "-m", args.message)
+    sh("git", "push", "origin", "main")
+else:
+    print("No source changes to commit")
+
+for name, manifest in SDKS:
+    tag = (out("git", "tag", "--list", f"{name}/v*", "--sort=-v:refname").splitlines() or [None])[0]
+    changed = tag is None or sh("git", "diff", "--quiet", f"{tag}..HEAD", "--", name, check=False).returncode != 0
+    if not changed:
+        print(f"Skipping {name}: no changes since {tag}")
+        continue
+
+    old = version(manifest)
+    cmd = [sys.executable, str(ROOT / name / "deploy" / "release")]
+    if args.first or tag is None:
+        cmd.append("--first")
+
+    env = os.environ.copy()
+    if name == "python":
+        env["UV_PUBLISH_TOKEN"] = secret("package-manager-tokens/python")
+    if name == "rust":
+        env["CARGO_REGISTRY_TOKEN"] = secret("package-manager-tokens/rust")
+
+    print(f"Publishing {name} from {tag or 'no previous tag'}")
+    sh(*cmd, cwd=ROOT / name, env=env)
+    new = version(manifest)
+    rel_manifest = str(manifest.relative_to(ROOT))
+    if sh("git", "diff", "--quiet", "--", rel_manifest, check=False).returncode:
+        sh("git", "add", rel_manifest)
+        sh("git", "commit", "-m", f"Release {name} v{new}")
+    sh("git", "tag", f"{name}/v{new}")
+    print(f"Published {name} {old} -> {new}")
+
+sh("git", "push", "origin", "main", "--tags")
