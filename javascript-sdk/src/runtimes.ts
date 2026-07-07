@@ -1,4 +1,4 @@
-import type { Peer } from "npmsonrpc"
+import type { Peer } from "tw2-jsonrpc"
 
 export type ExternalRuntime = "python" | "node"
 

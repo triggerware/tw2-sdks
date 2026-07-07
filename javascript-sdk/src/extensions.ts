@@ -1,4 +1,4 @@
-import type { Peer } from "npmsonrpc"
+import type { Peer } from "tw2-jsonrpc"
 import type { JsonObject, Runtime } from "./types.js"
 import { definedParams } from "./utils.js"
 

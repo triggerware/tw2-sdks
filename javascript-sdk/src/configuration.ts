@@ -1,4 +1,4 @@
-import type { Peer } from "npmsonrpc"
+import type { Peer } from "tw2-jsonrpc"
 import { definedParams } from "./utils.js"
 
 export interface Configuration {

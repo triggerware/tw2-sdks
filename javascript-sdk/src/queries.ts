@@ -1,4 +1,4 @@
-import type { Peer } from "npmsonrpc"
+import type { Peer } from "tw2-jsonrpc"
 import type { Row, RunOptions } from "./types.js"
 import { definedParams, withRunOptions } from "./utils.js"
 

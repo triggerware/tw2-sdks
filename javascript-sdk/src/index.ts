@@ -18,4 +18,4 @@ export {
   ParseError,
   ServerError,
   TimeoutError,
-} from "npmsonrpc"
+} from "tw2-jsonrpc"

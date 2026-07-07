@@ -1,4 +1,4 @@
-import { connectTcp as rpcConnectTcp, connectWs as rpcConnectWs, type Peer } from "npmsonrpc"
+import { connectTcp as rpcConnectTcp, connectWs as rpcConnectWs, type Peer } from "tw2-jsonrpc"
 import { ConfigurationService } from "./configuration.js"
 import { ConnectorsService } from "./connectors.js"
 import { CursorsService } from "./cursors.js"

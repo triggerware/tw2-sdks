@@ -1,0 +1,39 @@
+#!/usr/bin/env python3
+import argparse, json, os, shutil, subprocess, tempfile
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+MANIFEST = ROOT / "package.json"
+
+def read_manifest():
+    return json.loads(MANIFEST.read_text())
+
+def bump(v):
+    _major, minor, patch = map(int, v.split("."))
+    if patch >= 9:
+        return f"1.{minor + 1}.0"
+    return f"1.{minor}.{patch + 1}"
+
+def set_version(new):
+    data = read_manifest()
+    data["version"] = new
+    MANIFEST.write_text(json.dumps(data, indent=2) + "\n")
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--first", action="store_true")
+args = parser.parse_args()
+
+old = read_manifest()["version"]
+new = old if args.first else bump(old)
+
+set_version(new)
+shutil.rmtree(ROOT / "dist", ignore_errors=True)
+subprocess.run(["npm", "run", "build"], cwd=ROOT, check=True)
+env = os.environ.copy()
+with tempfile.TemporaryDirectory() as tmp:
+    if "NODE_AUTH_TOKEN" in env:
+        npmrc = Path(tmp) / ".npmrc"
+        npmrc.write_text("//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}\n")
+        env.setdefault("NPM_CONFIG_USERCONFIG", str(npmrc))
+    subprocess.run(["npm", "publish"], cwd=ROOT, env=env, check=True)
+print(f"Published javascript-sdk {old} -> {new}")
