@@ -181,7 +181,7 @@ export function connectorMetadataFromString(contents: string): ConnectorMetadata
   if (!isObject(parsed)) {
     throw new Error("connector metadata must be an object")
   }
-  return metadataFromWire(parsed as ConnectorMetadataWire)
+  return metadataFromWire(parsed as unknown as ConnectorMetadataWire)
 }
 
 function metadataToWire(meta: ConnectorMetadata | string): ConnectorMetadataWire {
@@ -193,7 +193,7 @@ function metadataToWire(meta: ConnectorMetadata | string): ConnectorMetadataWire
     columns: meta.columns,
     generators: meta.generators,
     config_schema: meta.configSchema,
-  }) as ConnectorMetadataWire
+  }) as unknown as ConnectorMetadataWire
 }
 
 function metadataFromWire(meta: ConnectorMetadataWire): ConnectorMetadata {
@@ -202,7 +202,7 @@ function metadataFromWire(meta: ConnectorMetadataWire): ConnectorMetadata {
     columns: meta.columns,
     generators: meta.generators,
     configSchema: meta.config_schema,
-  }) as ConnectorMetadata
+  }) as unknown as ConnectorMetadata
 }
 
 function isObject(value: unknown): value is JsonObject {
