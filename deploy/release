@@ -30,6 +30,17 @@ def secret(name):
         "--output", "text",
     )
 
+def changed_since(tag, sdk_root):
+    if tag is None:
+        return True
+    rel_sdk_root = str(sdk_root.relative_to(ROOT))
+    rel_deploy = str((sdk_root / "deploy").relative_to(ROOT))
+    return sh(
+        "git", "diff", "--quiet", f"{tag}..HEAD",
+        "--", rel_sdk_root, f":(exclude){rel_deploy}",
+        check=False,
+    ).returncode != 0
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--first", action="store_true")
 parser.add_argument("message")
@@ -47,8 +58,7 @@ else:
 
 for name, manifest, sdk_root in SDKS:
     tag = (out("git", "tag", "--list", f"{name}/v*", "--sort=-v:refname").splitlines() or [None])[0]
-    rel_sdk_root = str(sdk_root.relative_to(ROOT))
-    changed = tag is None or sh("git", "diff", "--quiet", f"{tag}..HEAD", "--", rel_sdk_root, check=False).returncode != 0
+    changed = changed_since(tag, sdk_root)
     if not changed:
         print(f"Skipping {name}: no changes since {tag}")
         continue
