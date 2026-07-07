@@ -566,32 +566,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tw2-jsonrpc"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "ca56676264628a95012a0d12f06901c5e178ce85e37a36db8547551f94cec5f1"
-dependencies = [
- "async-trait",
- "futures-util",
- "tw2-jsonrpc-macros",
- "serde",
- "serde_json",
- "tokio",
- "tokio-tungstenite",
-]
-
-[[package]]
-name = "tw2-jsonrpc-macros"
-version = "0.1.2"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f609cedc2888e464f080c0aea8f205a1119deca538277347aa1957dd16ef52dd"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -895,14 +869,14 @@ dependencies = [
 
 [[package]]
 name = "triggerware"
-version = "0.1.1"
+version = "1.0.0"
 dependencies = [
- "tw2-jsonrpc",
  "serde",
  "serde_json",
  "serde_with",
  "serde_yaml",
  "tokio",
+ "tw2-jsonrpc",
 ]
 
 [[package]]
@@ -920,6 +894,32 @@ dependencies = [
  "sha1",
  "thiserror",
  "utf-8",
+]
+
+[[package]]
+name = "tw2-jsonrpc"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a03aacae4b34e14e3012a50d998d99c4e3e452304cb7eb54de3fee51fea55373"
+dependencies = [
+ "async-trait",
+ "futures-util",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tokio-tungstenite",
+ "tw2-jsonrpc-macros",
+]
+
+[[package]]
+name = "tw2-jsonrpc-macros"
+version = "1.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "47e58db589ec17f92db4c8d03d0273c9a45ce8030eb19398a9b190b86d29023c"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
 ]
 
 [[package]]
