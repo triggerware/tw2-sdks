@@ -28,6 +28,8 @@ new = old if args.first else bump(old)
 
 set_version(new)
 shutil.rmtree(ROOT / "dist", ignore_errors=True)
+install = "ci" if (ROOT / "package-lock.json").exists() else "install"
+subprocess.run(["npm", install], cwd=ROOT, check=True)
 subprocess.run(["npm", "run", "build"], cwd=ROOT, check=True)
 env = os.environ.copy()
 with tempfile.TemporaryDirectory() as tmp:
