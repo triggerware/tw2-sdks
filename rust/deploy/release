@@ -17,13 +17,48 @@ def bump(v):
 def set_version(old, new):
     MANIFEST.write_text(MANIFEST.read_text().replace(f'version = "{old}"', f'version = "{new}"', 1))
 
+def latest_version():
+    tags = subprocess.check_output(
+        ["git", "tag", "--list", "rust/v*", "--sort=-v:refname"],
+        cwd=ROOT.parent,
+        text=True,
+    ).splitlines()
+    return tags[0].removeprefix("rust/v") if tags else None
+
 p = argparse.ArgumentParser()
 p.add_argument("--first", action="store_true")
 args = p.parse_args()
 
 old = read_version()
-new = old if args.first else bump(old)
+released = latest_version()
+if args.first:
+    new = old
+elif old == released:
+    new = bump(old)
+elif released and old == bump(released):
+    new = old
+else:
+    raise SystemExit(
+        f"Cannot release Rust SDK: manifest version {old} does not follow "
+        f"the latest tag rust/v{released}."
+    )
 
-set_version(old, new)
-subprocess.run(["cargo", "publish"], cwd=ROOT, check=True)
+if old != new:
+    set_version(old, new)
+    locked = subprocess.run(["cargo", "generate-lockfile"], cwd=ROOT)
+    if locked.returncode:
+        raise SystemExit("Failed to update the Rust SDK lockfile.")
+    subprocess.run(
+        ["git", "add", "rust/Cargo.toml", "rust/Cargo.lock"],
+        cwd=ROOT.parent,
+        check=True,
+    )
+    subprocess.run(
+        ["git", "commit", "-m", f"Release rust v{new}"],
+        cwd=ROOT.parent,
+        check=True,
+    )
+published = subprocess.run(["cargo", "publish"], cwd=ROOT)
+if published.returncode:
+    raise SystemExit("Failed to publish the Rust SDK. Fix the Cargo error above and rerun.")
 print(f"Published rust {old} -> {new}")

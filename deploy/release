@@ -77,7 +77,9 @@ for name, manifest, sdk_root in SDKS:
         env["NODE_AUTH_TOKEN"] = secret("package-manager-tokens/npm")
 
     print(f"Publishing {name} from {tag or 'no previous tag'}")
-    sh(*cmd, cwd=sdk_root, env=env)
+    released = sh(*cmd, cwd=sdk_root, env=env, check=False)
+    if released.returncode:
+        raise SystemExit(f"{name} release stopped. Resolve the message above and run it again.")
     new = version(manifest)
     rel_manifest = str(manifest.relative_to(ROOT))
     if sh("git", "diff", "--quiet", "--", rel_manifest, check=False).returncode:
