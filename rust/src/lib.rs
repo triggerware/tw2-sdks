@@ -57,11 +57,14 @@ impl TriggerwareClient {
         Ok(Self::new(peer))
     }
 
-    pub async fn connect_ws(url: &str, api_key: impl Into<String>) -> Result<TriggerwareClient> {
-        let peer = PeerBuilder::new().connect_ws(url).await?;
-        let client = Self::new(peer);
-        client.system.authorize(api_key).await?;
-        Ok(client)
+    pub async fn connect_http(
+        url: &str,
+        bearer_token: impl Into<String>,
+    ) -> Result<TriggerwareClient> {
+        let peer = PeerBuilder::new()
+            .connect_http(url, bearer_token)
+            .await?;
+        Ok(Self::new(peer))
     }
 
     pub fn new(peer: Peer) -> TriggerwareClient {

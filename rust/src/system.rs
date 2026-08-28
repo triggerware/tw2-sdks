@@ -45,6 +45,13 @@ impl SystemService {
             .map(|x| x.ok)
     }
 
+    pub async fn authorize_jwt(&self, jwt: impl Into<String>) -> Result<bool> {
+        self.peer
+            .call::<AuthorizationStatus>("system.authorize", params!({"jwt": jwt.into()}))
+            .await
+            .map(|x| x.ok)
+    }
+
     pub async fn authorized(&self) -> Result<bool> {
         self.peer
             .call::<AuthorizationStatus>("system.authorized", ())

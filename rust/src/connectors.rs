@@ -99,7 +99,11 @@ pub struct ConnectorsSyncOptions {
 }
 
 pub enum ConnectorCreation {
-    Prompt(String),
+    Prompt {
+        prompt: String,
+        code: Option<String>,
+        meta: Option<ConnectorMetadata>,
+    },
     Code {
         code: String,
         meta: ConnectorMetadata,
@@ -123,7 +127,10 @@ impl ConnectorsService {
             .with("runtime", runtime)?;
 
         params = match create {
-            ConnectorCreation::Prompt(prompt) => params.with("prompt", prompt)?,
+            ConnectorCreation::Prompt { prompt, code, meta } => params
+                .with("prompt", prompt)?
+                .with("code", code)?
+                .with("meta", meta)?,
             ConnectorCreation::Code { code, meta } => {
                 params.with("code", code)?.with("meta", meta)?
             }
@@ -202,7 +209,10 @@ impl Connector {
         });
 
         params = match update {
-            ConnectorCreation::Prompt(prompt) => params.with("prompt", prompt)?,
+            ConnectorCreation::Prompt { prompt, code, meta } => params
+                .with("prompt", prompt)?
+                .with("code", code)?
+                .with("meta", meta)?,
             ConnectorCreation::Code { code, meta } => {
                 params.with("code", code)?.with("meta", meta)?
             }

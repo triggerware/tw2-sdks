@@ -7,9 +7,21 @@ pub struct PromptsService {
     peer: Arc<Peer>,
 }
 
+#[derive(Deserialize)]
+struct PromptList {
+    prompts: Vec<String>,
+}
+
 impl PromptsService {
     pub fn new(peer: Arc<Peer>) -> PromptsService {
         PromptsService { peer }
+    }
+
+    pub async fn list(&self) -> Result<Vec<String>> {
+        self.peer
+            .call::<PromptList>("prompts.list", ())
+            .await
+            .map(|response| response.prompts)
     }
 
     pub async fn get(&self, name: impl Into<String>) -> Result<String> {

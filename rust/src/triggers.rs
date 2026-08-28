@@ -192,6 +192,7 @@ impl Trigger {
         }
 
         let peer = self.peer()?;
+        ensure_streaming(&peer)?;
         let name = self.name.clone();
         register_watcher(&peer, name.clone(), callback);
 
@@ -227,6 +228,7 @@ impl Trigger {
         }
 
         let peer = self.peer()?;
+        ensure_streaming(&peer)?;
         let name = self.name.clone();
         register_watcher(&peer, name.clone(), callback);
 
@@ -251,7 +253,9 @@ impl Trigger {
             return Ok(());
         };
 
-        self.peer()?
+        let peer = self.peer()?;
+        ensure_streaming(&peer)?;
+        peer
             .call::<()>("triggers.unwatch", params!({"resume_token": resume_token}))
             .await?;
 
@@ -276,6 +280,19 @@ impl Trigger {
             .clone()
             .ok_or_else(|| JsonRpcError::internal_error("trigger is not attached to a peer"))
     }
+}
+
+fn ensure_streaming(peer: &Peer) -> Result<()> {
+    let metadata = peer.metadata();
+    let metadata = metadata
+        .read()
+        .map_err(|_| JsonRpcError::internal_error("peer metadata is unavailable"))?;
+    if metadata.get("transport").and_then(Value::as_str) == Some("http") {
+        return Err(JsonRpcError::internal_error(
+            "trigger watching is only supported for local connections",
+        ));
+    }
+    Ok(())
 }
 
 impl TriggerCreation {
