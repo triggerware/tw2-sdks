@@ -45,9 +45,14 @@ else:
 
 if old != new:
     set_version(old, new)
-    locked = subprocess.run(["cargo", "generate-lockfile"], cwd=ROOT)
-    if locked.returncode:
-        raise SystemExit("Failed to update the Rust SDK lockfile.")
+locked = subprocess.run(["cargo", "generate-lockfile"], cwd=ROOT)
+if locked.returncode:
+    raise SystemExit("Failed to update the Rust SDK lockfile.")
+changed = subprocess.run(
+    ["git", "diff", "--quiet", "--", "rust/Cargo.toml", "rust/Cargo.lock"],
+    cwd=ROOT.parent,
+).returncode
+if changed:
     subprocess.run(
         ["git", "add", "rust/Cargo.toml", "rust/Cargo.lock"],
         cwd=ROOT.parent,
