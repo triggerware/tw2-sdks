@@ -34,12 +34,11 @@ class ExtensionsService:
         url: str | None = None,
         tag: str | None = None,
         config: dict[str, Any] | None = None,
-    ) -> list[str]:
-        response = await self._peer.call(
+    ) -> None:
+        await self._peer.call(
             "extensions.install",
             _extension_params(name=name, url=url, tag=tag, config=config or {}),
         )
-        return response["connectors"]
 
     async def get(self, name: str, *, tag: str | None = None) -> Extension:
         response = await self._peer.call(

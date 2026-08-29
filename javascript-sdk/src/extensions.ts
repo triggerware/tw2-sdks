@@ -43,10 +43,6 @@ interface ExtensionList {
   extensions: string[]
 }
 
-interface ExtensionInstallResponse {
-  connectors: string[]
-}
-
 interface ExtensionWire {
   config: JsonObject | null
   connectors: string[]
@@ -59,12 +55,11 @@ export class ExtensionsService {
     this.#peer = peer
   }
 
-  async install(install: ExtensionInstall): Promise<string[]> {
-    const response = await this.#peer.call<ExtensionInstallResponse>(
+  install(install: ExtensionInstall): Promise<void> {
+    return this.#peer.call<void>(
       "extensions.install",
       extensionParams({ ...install, config: install.config ?? {} }),
     )
-    return response.connectors
   }
 
   async get(name: string, options: { tag?: string } = {}): Promise<Extension> {
