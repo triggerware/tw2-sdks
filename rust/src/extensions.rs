@@ -22,6 +22,8 @@ pub struct Extension {
 pub struct ExtensionDescription {
     pub description: String,
     pub config_schema: Map<String, Value>,
+    #[serde(default)]
+    pub oauth_provider: Option<String>,
     pub runtime: Option<ExtensionRuntime>,
     pub dependencies: Option<Vec<String>>,
     pub connectors: Vec<String>,
@@ -58,6 +60,11 @@ pub struct ExtensionReference {
     pub url: Option<String>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ExtensionAuthorization {
+    pub url: Option<String>,
+}
+
 #[derive(Deserialize)]
 struct ExtensionList {
     extensions: Vec<String>,
@@ -73,8 +80,20 @@ impl ExtensionsService {
         ExtensionsService { peer }
     }
 
-    pub async fn install(&self, install: ExtensionInstall) -> Result<()> {
+    pub async fn install(&self, install: ExtensionInstall) -> Result<ExtensionAuthorization> {
         self.peer.call("extensions.install", install).await
+    }
+
+    pub async fn authorize(
+        &self,
+        name: impl Into<String>,
+        tag: Option<impl Into<String>>,
+    ) -> Result<ExtensionAuthorization> {
+        let mut params = params!().with("name", name.into())?;
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        self.peer.call("extensions.authorize", params).await
     }
 
     pub async fn get(

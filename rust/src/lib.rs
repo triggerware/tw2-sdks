@@ -20,7 +20,8 @@ pub use connectors::{
 };
 pub use cursors::{Cursor, CursorColumn, CursorCreation, RunOptions};
 pub use extensions::{
-    Extension, ExtensionCatalogEntry, ExtensionDescription, ExtensionInstall, ExtensionReference,
+    Extension, ExtensionAuthorization, ExtensionCatalogEntry, ExtensionDescription,
+    ExtensionInstall, ExtensionReference,
 };
 pub use queries::{Query, QueryCreation, QuerySignature};
 pub use system::{Health, SystemUpdate};
