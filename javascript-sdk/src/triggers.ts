@@ -14,7 +14,6 @@ export interface TriggerDelta {
 
 export interface TriggerOptions extends RunOptions {
   schedule?: string
-  delivery?: string[]
   reportNoops?: boolean
   enabled?: boolean
 }
@@ -24,7 +23,6 @@ interface TriggerDefinition {
   prompt?: string
   sql?: string
   schedule?: string
-  delivery?: string[]
   batch_size?: number
   timeout_ms?: number
   report_noops: boolean
@@ -52,7 +50,6 @@ export type TriggerUpdate = Partial<{
   sql: string
   prompt: string
   schedule: string
-  delivery: string[]
   batchSize: number
   timeoutMs: number
   reportNoops: boolean
@@ -239,7 +236,6 @@ export class Trigger {
     this.#signature = definition.signature
     this.#options = {
       schedule: definition.schedule,
-      delivery: definition.delivery ?? [],
       batchSize: definition.batch_size,
       timeoutMs: definition.timeout_ms,
       reportNoops: definition.report_noops,
@@ -254,7 +250,6 @@ function triggerParams(values: TriggerUpdate & { name: string }): Record<string,
     sql: values.sql,
     prompt: values.prompt,
     schedule: values.schedule,
-    delivery: values.delivery,
     batch_size: values.batchSize,
     timeout_ms: values.timeoutMs,
     report_noops: values.reportNoops,

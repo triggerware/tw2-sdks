@@ -29,13 +29,6 @@ export type QueryCreation =
   | ({ sql: string; prompt?: never } & RunOptions)
   | ({ prompt: string; sql?: never } & RunOptions)
 
-export type QueryUpdate = Partial<{
-  sql: string
-  prompt: string
-  batchSize: number
-  timeoutMs: number
-}>
-
 export class QueriesService {
   readonly #peer: Peer
 
@@ -107,19 +100,6 @@ export class Query implements AsyncIterable<Row> {
     return this.#exhausted
   }
 
-  async update(update: QueryUpdate = {}): Promise<void> {
-    const definition = await this.#peer.call<QueryDefinition>(
-      "queries.update",
-      queryParams(this.#name, {
-        sql: update.sql,
-        prompt: update.prompt,
-        batchSize: update.batchSize,
-        timeoutMs: update.timeoutMs,
-      }),
-    )
-    this.#replace(definition)
-  }
-
   async reset(): Promise<void> {
     const definition = await this.#peer.call<QueryDefinition>("queries.reset", {
       name: this.#name,
@@ -189,7 +169,7 @@ export class Query implements AsyncIterable<Row> {
   }
 }
 
-function queryParams(name: string, values: QueryUpdate): Record<string, unknown> {
+function queryParams(name: string, values: QueryCreation): Record<string, unknown> {
   return definedParams({
     name,
     sql: values.sql,

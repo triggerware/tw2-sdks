@@ -16,7 +16,6 @@ class TriggerDefinition(TypedDict):
     prompt: NotRequired[str]
     sql: NotRequired[str]
     schedule: NotRequired[str]
-    delivery: NotRequired[list[str]]
     batch_size: NotRequired[int]
     timeout_ms: NotRequired[int]
     report_noops: bool
@@ -51,7 +50,6 @@ class Trigger:
         sql: str | None = None,
         prompt: str | None = None,
         schedule: str | None = None,
-        delivery: list[str] | None = None,
         batch_size: int | None = None,
         timeout_ms: int | None = None,
         report_noops: bool | None = None,
@@ -62,7 +60,6 @@ class Trigger:
             sql=sql,
             prompt=prompt,
             schedule=schedule,
-            delivery=delivery,
             batch_size=batch_size,
             timeout_ms=timeout_ms,
             report_noops=report_noops,
@@ -165,7 +162,6 @@ class Trigger:
         self.sql = definition.get("sql")
         self.prompt = definition.get("prompt")
         self.schedule = definition.get("schedule")
-        self.delivery = definition.get("delivery", [])
         self.batch_size = definition.get("batch_size")
         self.timeout_ms = definition.get("timeout_ms")
         self.report_noops = definition["report_noops"]
@@ -193,7 +189,6 @@ class TriggersService:
         sql: str | None = None,
         prompt: str | None = None,
         schedule: str | None = None,
-        delivery: list[str] | None = None,
         batch_size: int | None = None,
         timeout_ms: int | None = None,
         report_noops: bool | None = None,
@@ -206,7 +201,6 @@ class TriggersService:
                 sql=sql,
                 prompt=prompt,
                 schedule=schedule,
-                delivery=delivery,
                 batch_size=batch_size,
                 timeout_ms=timeout_ms,
                 report_noops=report_noops,

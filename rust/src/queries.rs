@@ -102,17 +102,6 @@ impl Query {
     pub fn is_exhausted(&self) -> bool {
         self.exhausted
     }
-    pub async fn update(&mut self, update: QueryCreation, config: RunOptions) -> Result<()> {
-        let peer = self.peer()?;
-        let params = update.with_params(params!({"name": self.name.clone()}))?;
-
-        let mut query: Query = peer.call("queries.update", config.with_params(params)?).await?;
-        query.peer = Some(peer);
-        *self = query;
-
-        Ok(())
-    }
-
     pub async fn reset(&mut self) -> Result<()> {
         let peer = self.peer()?;
 
@@ -132,6 +121,17 @@ impl Query {
     }
 
     pub async fn fetch(&mut self) -> Result<Vec<Vec<Value>>> {
+        self.fetch_with_rows(None).await
+    }
+
+    pub async fn fetch_rows(&mut self, rows: usize) -> Result<Vec<Vec<Value>>> {
+        if rows == 0 {
+            return Ok(vec![]);
+        }
+        self.fetch_with_rows(Some(rows)).await
+    }
+
+    async fn fetch_with_rows(&mut self, rows: Option<usize>) -> Result<Vec<Vec<Value>>> {
         #[derive(Deserialize)]
         struct QueryFetch {
             rows: Vec<Vec<Value>>,
@@ -142,7 +142,10 @@ impl Query {
             return Ok(vec![]);
         }
 
-        let params = params!({"name": self.name.clone()});
+        let mut params = params!({"name": self.name.clone()});
+        if let Some(rows) = rows {
+            params = params.with("rows", rows)?;
+        }
         let fetch: QueryFetch = self.peer()?.call("queries.fetch", params).await?;
         self.exhausted = fetch.exhausted;
         self.cache.extend(fetch.rows.clone());

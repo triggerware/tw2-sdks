@@ -84,6 +84,25 @@ impl ExtensionsService {
         self.peer.call("extensions.install", install).await
     }
 
+    pub async fn install_secure(
+        &self,
+        name: Option<impl Into<String>>,
+        url: Option<impl Into<String>>,
+        tag: Option<impl Into<String>>,
+    ) -> Result<ExtensionAuthorization> {
+        let mut params = params!().with("secure", true)?;
+        if let Some(name) = name {
+            params = params.with("name", name.into())?;
+        }
+        if let Some(url) = url {
+            params = params.with("url", url.into())?;
+        }
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        self.peer.call("extensions.install", params).await
+    }
+
     pub async fn authorize(
         &self,
         name: impl Into<String>,
@@ -141,6 +160,27 @@ impl ExtensionsService {
         self.peer
             .call::<()>("extensions.configure", params)
             .await
+    }
+
+    pub async fn configure_secure(
+        &self,
+        name: impl Into<String>,
+        tag: Option<impl Into<String>>,
+    ) -> Result<Option<String>> {
+        #[derive(Deserialize)]
+        struct SecureConfiguration {
+            url: String,
+        }
+
+        let mut params = params!()
+            .with("name", name.into())?
+            .with("secure", true)?;
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        let response: Option<SecureConfiguration> =
+            self.peer.call("extensions.configure", params).await?;
+        Ok(response.map(|response| response.url))
     }
 
     pub async fn catalog(&self) -> Result<Vec<ExtensionCatalogEntry>> {

@@ -14,7 +14,6 @@ pub enum TriggerCreation {
 #[serde_with::skip_serializing_none]
 pub struct TriggerOptions {
     pub schedule: Option<String>,
-    pub delivery: Option<Vec<String>>,
     pub report_noops: Option<bool>,
     pub enabled: Option<bool>,
     #[serde(flatten)]

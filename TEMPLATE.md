@@ -92,14 +92,13 @@ The client has a field called `queries` with create, get, and list methods.
 
 `queries.list` returns query names, matching the JSON-RPC docs.
 
-Query objects own update, reset, delete, fetch, and next/iteration:
+Query objects own reset, delete, fetch, and next/iteration:
 
 ```text
 query = await client.queries.get("recent_charges")
 await query.fetch()
 await query.next()
 await query.reset()
-await query.update(...)
 await query.delete()
 ```
 
@@ -180,7 +179,7 @@ Iteration yields one row at a time. Internally, the iterator uses the current ba
 
 ## The Query
 
-A Query stores its name and any config fields returned by `queries.get`, `queries.create`, or `queries.update`.
+A Query stores its name and any config fields returned by `queries.get` or `queries.create`.
 
 A Query can fetch, iterate one row at a time, and reset itself:
 
@@ -190,10 +189,9 @@ await query.next()
 await query.reset()
 ```
 
-A Query can also update or delete itself:
+A Query can also delete itself:
 
 ```text
-await query.update(...)
 await query.delete()
 ```
 

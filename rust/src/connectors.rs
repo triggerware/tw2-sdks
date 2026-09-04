@@ -176,6 +176,25 @@ impl ConnectorsService {
         });
         self.peer.call::<()>("connectors.configure", params).await
     }
+
+    pub async fn configure_secure(&self, name: impl Into<String>) -> Result<Option<String>> {
+        #[derive(Deserialize)]
+        struct SecureConfiguration {
+            url: String,
+        }
+
+        let response: Option<SecureConfiguration> = self
+            .peer
+            .call(
+                "connectors.configure",
+                params!({
+                    "name": name.into(),
+                    "secure": true
+                }),
+            )
+            .await?;
+        Ok(response.map(|response| response.url))
+    }
 }
 
 impl Connector {

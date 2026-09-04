@@ -37,24 +37,6 @@ class Query:
         self._cache: list[list[Any]] = []
         self._cache_position = 0
 
-    async def update(
-        self,
-        *,
-        sql: str | None = None,
-        prompt: str | None = None,
-        batch_size: int | None = None,
-        timeout_ms: int | None = None,
-    ) -> None:
-        params = _query_params(
-            name=self.name,
-            sql=sql,
-            prompt=prompt,
-            batch_size=batch_size,
-            timeout_ms=timeout_ms,
-        )
-        definition: QueryDefinition = await self._peer.call("queries.update", params)
-        self._replace(definition)
-
     async def reset(self) -> None:
         definition: QueryDefinition = await self._peer.call(
             "queries.reset",
