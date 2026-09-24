@@ -30,6 +30,16 @@ impl ConfigurationService {
     pub async fn set(&self, config: TriggerwareConfiguration) -> Result<TriggerwareConfiguration> {
         self.peer.call("configuration.set", config).await
     }
+    pub async fn set_secure(&self) -> Result<String> {
+        #[derive(Deserialize)]
+        struct SecureConfiguration {
+            url: String,
+        }
+        let response: SecureConfiguration = self.peer
+            .call("configuration.set", params!({ "secure": true }))
+            .await?;
+        Ok(response.url)
+    }
     pub async fn refresh(&self) -> Result<TriggerwareConfiguration> {
         self.peer.call("configuration.refresh", params!()).await
     }
