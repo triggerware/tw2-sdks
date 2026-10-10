@@ -13,6 +13,8 @@ class Extension(TypedDict):
     tag: NotRequired[str]
     config: dict[str, Any] | None
     connectors: list[str]
+    tools: list[str]
+    agents: list[str]
 
 
 class ExtensionDescription(TypedDict):
@@ -21,6 +23,8 @@ class ExtensionDescription(TypedDict):
     runtime: NotRequired[ExtensionRuntime]
     dependencies: NotRequired[list[str]]
     connectors: list[str]
+    tools: list[str]
+    agents: list[str]
 
 
 class ExtensionsService:
@@ -49,6 +53,8 @@ class ExtensionsService:
             "name": name,
             "config": response["config"],
             "connectors": response["connectors"],
+            "tools": response["tools"],
+            "agents": response["agents"],
         }
         if tag is not None:
             extension["tag"] = tag

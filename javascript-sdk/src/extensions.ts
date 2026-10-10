@@ -9,6 +9,8 @@ export interface Extension {
   readonly tag?: string
   readonly config: JsonObject | null
   readonly connectors: string[]
+  readonly tools: string[]
+  readonly agents: string[]
 }
 
 export interface ExtensionDescription {
@@ -17,6 +19,8 @@ export interface ExtensionDescription {
   runtime?: ExtensionRuntime
   dependencies?: string[]
   connectors: string[]
+  tools: string[]
+  agents: string[]
 }
 
 interface ExtensionDescriptionWire {
@@ -25,6 +29,8 @@ interface ExtensionDescriptionWire {
   runtime?: ExtensionRuntime
   dependencies?: string[]
   connectors: string[]
+  tools: string[]
+  agents: string[]
 }
 
 export interface ExtensionInstall {
@@ -46,6 +52,8 @@ interface ExtensionList {
 interface ExtensionWire {
   config: JsonObject | null
   connectors: string[]
+  tools: string[]
+  agents: string[]
 }
 
 export class ExtensionsService {
@@ -72,6 +80,8 @@ export class ExtensionsService {
       tag: options.tag,
       config: response.config,
       connectors: response.connectors,
+      tools: response.tools,
+      agents: response.agents,
     }
   }
 
@@ -103,6 +113,8 @@ export class ExtensionsService {
       runtime: response.runtime,
       dependencies: response.dependencies,
       connectors: response.connectors,
+      tools: response.tools,
+      agents: response.agents,
     }
   }
 

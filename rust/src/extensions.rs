@@ -16,6 +16,8 @@ pub struct Extension {
     tag: Option<String>,
     pub config: Option<Map<String, Value>>,
     pub connectors: Vec<String>,
+    pub tools: Vec<String>,
+    pub agents: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,6 +29,8 @@ pub struct ExtensionDescription {
     pub runtime: Option<ExtensionRuntime>,
     pub dependencies: Option<Vec<String>>,
     pub connectors: Vec<String>,
+    pub tools: Vec<String>,
+    pub agents: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
