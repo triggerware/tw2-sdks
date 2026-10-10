@@ -5,21 +5,21 @@ export interface Configuration {
   defaultTimeoutMs?: number
   defaultBatchSize?: number
   defaultTriggerBatchSize?: number
-  llmProvider?: string
-  llmModel?: string
+  agentProvider?: string
+  agentModel?: string
   maxLogFileSize?: string
 }
 
 export interface ConfigurationUpdate extends Configuration {
-  llmApiKey?: string
+  agentApiKey?: string
 }
 
 interface ConfigurationWire {
   default_timeout_ms?: number
   default_batch_size?: number
   default_trigger_batch_size?: number
-  llm_provider?: string
-  llm_model?: string
+  agent_provider?: string
+  agent_model?: string
   max_log_file_size?: string
 }
 
@@ -52,9 +52,9 @@ function configurationToWire(config: ConfigurationUpdate): Record<string, unknow
     default_timeout_ms: config.defaultTimeoutMs,
     default_batch_size: config.defaultBatchSize,
     default_trigger_batch_size: config.defaultTriggerBatchSize,
-    llm_provider: config.llmProvider,
-    llm_model: config.llmModel,
-    llm_api_key: config.llmApiKey,
+    agent_provider: config.agentProvider,
+    agent_model: config.agentModel,
+    agent_api_key: config.agentApiKey,
     max_log_file_size: config.maxLogFileSize,
   })
 }
@@ -64,8 +64,8 @@ function configurationFromWire(config: ConfigurationWire): Configuration {
     defaultTimeoutMs: config.default_timeout_ms,
     defaultBatchSize: config.default_batch_size,
     defaultTriggerBatchSize: config.default_trigger_batch_size,
-    llmProvider: config.llm_provider,
-    llmModel: config.llm_model,
+    agentProvider: config.agent_provider,
+    agentModel: config.agent_model,
     maxLogFileSize: config.max_log_file_size,
   }) as Configuration
 }

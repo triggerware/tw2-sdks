@@ -9,9 +9,9 @@ pub struct TriggerwareConfiguration {
   pub default_timeout_ms: Option<u64>,
   pub default_batch_size: Option<u64>,
   pub default_trigger_batch_size: Option<u64>,
-  pub llm_provider: Option<String>,
-  pub llm_model: Option<String>,
-  pub llm_api_key: Option<String>,
+  pub agent_provider: Option<String>,
+  pub agent_model: Option<String>,
+  pub agent_api_key: Option<String>,
   pub max_log_file_size: Option<String>,
 }
 

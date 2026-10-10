@@ -7,7 +7,10 @@ mod connectors;
 mod cursors;
 mod extensions;
 mod logging;
-mod prompts;
+mod agents;
+mod tools;
+pub use agents::AgentWrite;
+pub use tools::ToolWrite;
 mod queries;
 mod runtimes;
 mod system;
@@ -45,7 +48,8 @@ pub struct TriggerwareClient {
     pub cursors: cursors::CursorsService,
     pub extensions: extensions::ExtensionsService,
     pub logging: logging::LoggingService,
-    pub prompts: prompts::PromptsService,
+    pub agents: agents::AgentsService,
+    pub tools: tools::ToolsService,
     pub queries: queries::QueriesService,
     pub runtimes: runtimes::RuntimesService,
     pub system: system::SystemService,
@@ -76,7 +80,8 @@ impl TriggerwareClient {
             cursors: cursors::CursorsService::new(peer.clone()),
             extensions: extensions::ExtensionsService::new(peer.clone()),
             logging: logging::LoggingService::new(peer.clone()),
-            prompts: prompts::PromptsService::new(peer.clone()),
+            agents: agents::AgentsService::new(peer.clone()),
+            tools: tools::ToolsService::new(peer.clone()),
             queries: queries::QueriesService::new(peer.clone()),
             runtimes: runtimes::RuntimesService::new(peer.clone()),
             system: system::SystemService::new(peer.clone()),

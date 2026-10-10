@@ -9,8 +9,8 @@ class Configuration(TypedDict):
     default_timeout_ms: NotRequired[int]
     default_batch_size: NotRequired[int]
     default_trigger_batch_size: NotRequired[int]
-    llm_provider: NotRequired[str]
-    llm_model: NotRequired[str]
+    agent_provider: NotRequired[str]
+    agent_model: NotRequired[str]
     max_log_file_size: NotRequired[str]
 
 
@@ -27,18 +27,18 @@ class ConfigurationService:
         default_timeout_ms: int | None = None,
         default_batch_size: int | None = None,
         default_trigger_batch_size: int | None = None,
-        llm_provider: str | None = None,
-        llm_model: str | None = None,
-        llm_api_key: str | None = None,
+        agent_provider: str | None = None,
+        agent_model: str | None = None,
+        agent_api_key: str | None = None,
         max_log_file_size: str | None = None,
     ) -> Configuration:
         params = {
             "default_timeout_ms": default_timeout_ms,
             "default_batch_size": default_batch_size,
             "default_trigger_batch_size": default_trigger_batch_size,
-            "llm_provider": llm_provider,
-            "llm_model": llm_model,
-            "llm_api_key": llm_api_key,
+            "agent_provider": agent_provider,
+            "agent_model": agent_model,
+            "agent_api_key": agent_api_key,
             "max_log_file_size": max_log_file_size,
         }
         return await self._peer.call(

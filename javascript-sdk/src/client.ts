@@ -3,7 +3,7 @@ import { ConfigurationService } from "./configuration.js"
 import { ConnectorsService } from "./connectors.js"
 import { CursorsService } from "./cursors.js"
 import { ExtensionsService } from "./extensions.js"
-import { PromptsService } from "./prompts.js"
+import { AgentsService } from "./agents.js"
 import { QueriesService } from "./queries.js"
 import { RuntimesService } from "./runtimes.js"
 import { SystemService } from "./system.js"
@@ -15,7 +15,7 @@ export class TriggerwareClient {
   readonly connectors: ConnectorsService
   readonly cursors: CursorsService
   readonly extensions: ExtensionsService
-  readonly prompts: PromptsService
+  readonly agents: AgentsService
   readonly queries: QueriesService
   readonly runtimes: RuntimesService
   readonly system: SystemService
@@ -29,7 +29,7 @@ export class TriggerwareClient {
     this.connectors = new ConnectorsService(peer)
     this.cursors = new CursorsService(peer)
     this.extensions = new ExtensionsService(peer)
-    this.prompts = new PromptsService(peer)
+    this.agents = new AgentsService(peer)
     this.queries = new QueriesService(peer)
     this.runtimes = new RuntimesService(peer)
     this.system = new SystemService(peer)

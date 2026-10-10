@@ -9,7 +9,7 @@ from ._connectors import ConnectorsService
 from ._cursors import CursorsService
 from ._extensions import ExtensionsService
 from ._logging import LoggingService
-from ._prompts import PromptsService
+from ._agents import AgentsService
 from ._queries import QueriesService
 from ._runtimes import RuntimesService
 from ._system import SystemService
@@ -25,7 +25,7 @@ class TriggerwareClient:
         self.cursors = CursorsService(peer)
         self.extensions = ExtensionsService(peer)
         self.logging = LoggingService(peer)
-        self.prompts = PromptsService(peer)
+        self.agents = AgentsService(peer)
         self.queries = QueriesService(peer)
         self.runtimes = RuntimesService(peer)
         self.system = SystemService(peer)
