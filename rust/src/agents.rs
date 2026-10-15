@@ -20,7 +20,7 @@ pub struct AgentsService {
 }
 
 impl AgentsService {
-    pub async fn create(&self, options: AgentWrite) -> Result<()> {
+    pub async fn create(&self, options: AgentWrite) -> Result<Value> {
         self.peer.call("agents.create", options).await
     }
 
