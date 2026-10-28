@@ -8,9 +8,9 @@ Everything should be async if possible, since my JSON-RPC libraries are all asyn
 
 Everything should use the JSON-RPC errors / exceptions from the appropriate JSON-RPC library. Do not invent a custom Triggerware SDK error type.
 
-SDK objects should generally feel immutable from the user's perspective. This means local fields on things like `TriggerwareClient`, `Connector`, `Cursor`, `Query`, and `Trigger` should not be public mutable fields and should not be casually reassigned by SDK users. Use accessors/getters for local fields where the language expects them. Methods may still perform remote operations like update, delete, reset, enable, disable, etc. If a remote operation changes the resource's definition, the object may refresh itself internally.
+SDK objects should generally feel immutable from the user's perspective. This means local fields on things like `TriggerwareClient`, `Table`, `Cursor`, `Query`, and `Trigger` should not be public mutable fields and should not be casually reassigned by SDK users. Use accessors/getters for local fields where the language expects them. Methods may still perform remote operations like update, delete, reset, enable, disable, etc. If a remote operation changes the resource's definition, the object may refresh itself internally.
 
-Services should usually be for creating, loading, listing, syncing, and opening resources. Once an SDK has returned a resource object, lifecycle methods that clearly belong to that object should live on the object too. For example, prefer `connector.update(...)`, `query.fetch()`, and `trigger.run()` over forcing users back through `client.connectors.update(...)`, `client.queries.fetch(...)`, or `client.triggers.run(...)`. Dynamic languages may still provide service-level convenience overloads, but the object-owned API is the primary shape.
+Services should usually be for creating, loading, listing, syncing, and opening resources. Once an SDK has returned a resource object, lifecycle methods that clearly belong to that object should live on the object too. For example, prefer `table.update(...)`, `query.fetch()`, and `trigger.run()` over forcing users back through `client.tables.update(...)`, `client.queries.fetch(...)`, or `client.triggers.run(...)`. Dynamic languages may still provide service-level convenience overloads, but the object-owned API is the primary shape.
 
 ## The TriggerwareClient
 
@@ -33,9 +33,9 @@ client = await TriggerwareClient.connect_tcp("localhost:5000")
 The client always has these service fields:
 
 - `configuration`
-- `connectors`
+- `tables`
 - `cursors`
-- `extensions`
+- `connectors`
 - `prompts`
 - `queries`
 - `system`
@@ -47,23 +47,23 @@ The client always has a field called `configuration` with get, set, and refresh 
 
 This maps to the `configuration.*` JSON-RPC methods.
 
-### connectors
+### tables
 
-The client always has a field called `connectors` with create, get, list, and sync methods.
+The client always has a field called `tables` with create, get, list, and sync methods.
 
-`connectors.get` returns a Connector class / struct.
+`tables.get` returns a Table class / struct.
 
-`connectors.create` should return a Connector too.
+`tables.create` should return a Table too.
 
-`connectors.list` returns connector names, matching the JSON-RPC docs.
+`tables.list` returns table names, matching the JSON-RPC docs.
 
-Update, delete, and configure should live on Connector objects:
+Update, delete, and configure should live on Table objects:
 
 ```text
-connector = await client.connectors.get("stripe_charges")
-await connector.update(...)
-await connector.configure(...)
-await connector.delete()
+table = await client.tables.get("stripe_charges")
+await table.update(...)
+await table.configure(...)
+await table.delete()
 ```
 
 ### cursors
@@ -74,9 +74,9 @@ The client always has a field called `cursors` with an open method.
 
 Cursor objects own their fetch, next/iteration, and close behavior.
 
-### extensions
+### connectors
 
-The client has a field called `extensions` with install, get, list, configure, catalog, describe, and uninstall methods that match the spec.
+The client has a field called `connectors` with install, get, list, configure, catalog, describe, and uninstall methods that match the spec.
 
 ### prompts
 
@@ -144,21 +144,21 @@ callback(added, deleted)
 
 Only one watch per trigger per client/peer is supported. A Trigger should store its watch state and resume token privately. `trigger.watch(...)` sets that state after calling `triggers.watch` and returns the resume token; `trigger.resume(...)` resumes from an existing token; `trigger.unwatch()` uses the stored resume token, then clears local watch state.
 
-## The Connector
+## The Table
 
-A Connector is readonly and mostly just stores what `connectors.get` returned.
+A Table is readonly and mostly just stores what `tables.get` returned.
 
-A Connector should know its name.
+A Table should know its name.
 
-A Connector has update, configure, and delete methods:
+A Table has update, configure, and delete methods:
 
 ```text
-await connector.update(...)
-await connector.configure(...)
-await connector.delete()
+await table.update(...)
+await table.configure(...)
+await table.delete()
 ```
 
-These call `connectors.update`, `connectors.configure`, and `connectors.delete` through the client/peer that created the Connector. If update changes the connector definition, the Connector should replace its cached fields from the `connectors.update` response.
+These call `tables.update`, `tables.configure`, and `tables.delete` through the client/peer that created the Table. If update changes the table definition, the Table should replace its cached fields from the `tables.update` response.
 
 ## The Cursor
 

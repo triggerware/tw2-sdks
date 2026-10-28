@@ -1,171 +1,102 @@
 from __future__ import annotations
 
-import json
 from typing import Any, Literal, NotRequired, TypedDict
 
 import tw2_jsonrpc as rpc
-import yaml
 
 
 ConnectorRuntime = Literal["lua", "python", "node"]
 
 
-class ConnectorColumn(TypedDict):
-    name: str
-    type: str
-
-
-class ConnectorGenerator(TypedDict):
-    name: str
-    inputs: list[str]
-
-
-class ConnectorMetadata(TypedDict):
-    description: NotRequired[str]
-    columns: list[ConnectorColumn]
-    generators: list[ConnectorGenerator]
-    config_schema: NotRequired[dict[str, Any]]
-
-
-class ConnectorExtension(TypedDict):
-    name: str
-    tag: NotRequired[str]
-
-
 class Connector(TypedDict):
     name: str
-    meta: ConnectorMetadata
-    code: str
+    tag: NotRequired[str]
+    config: dict[str, Any] | None
+    tables: list[str]
+    tools: list[str]
+    agents: list[str]
+
+
+class ConnectorDescription(TypedDict):
+    description: str
+    config_schema: dict[str, Any]
     runtime: NotRequired[ConnectorRuntime]
-    extension: NotRequired[ConnectorExtension]
-    configured: bool
+    dependencies: NotRequired[list[str]]
+    tables: list[str]
+    tools: list[str]
+    agents: list[str]
 
 
 class ConnectorsService:
     def __init__(self, peer: rpc.Peer):
         self._peer = peer
 
-    async def create(
+    async def install(
         self,
-        name: str,
         *,
-        prompt: str | None = None,
-        code: str | None = None,
-        meta: ConnectorMetadata | str | None = None,
-        runtime: ConnectorRuntime | None = None,
-    ) -> Connector:
-        connector = await self._peer.call(
-            "connectors.create",
-            self._definition_params(
-                name=name,
-                prompt=prompt,
-                code=code,
-                meta=meta,
-                runtime=runtime,
-            ),
+        name: str | None = None,
+        url: str | None = None,
+        tag: str | None = None,
+        config: dict[str, Any] | None = None,
+    ) -> None:
+        await self._peer.call(
+            "connectors.install",
+            _connector_params(name=name, url=url, tag=tag, config=config or {}),
         )
-        connector["name"] = name
-        return connector
 
-    async def get(self, name: str) -> Connector:
-        connector = await self._peer.call("connectors.get", {"name": name})
-        connector["name"] = name
-        return connector
-
-    async def update(
-        self,
-        name: str,
-        *,
-        prompt: str | None = None,
-        code: str | None = None,
-        meta: ConnectorMetadata | str | None = None,
-        runtime: ConnectorRuntime | None = None,
-    ) -> Connector:
-        connector = await self._peer.call(
-            "connectors.update",
-            self._definition_params(
-                name=name,
-                prompt=prompt,
-                code=code,
-                meta=meta,
-                runtime=runtime,
-            ),
+    async def get(self, name: str, *, tag: str | None = None) -> Connector:
+        response = await self._peer.call(
+            "connectors.get",
+            _connector_params(name=name, tag=tag),
         )
-        connector["name"] = name
+        connector: Connector = {
+            "name": name,
+            "config": response["config"],
+            "tables": response["tables"],
+            "tools": response["tools"],
+            "agents": response["agents"],
+        }
+        if tag is not None:
+            connector["tag"] = tag
         return connector
 
     async def list(self) -> list[str]:
         response = await self._peer.call("connectors.list")
         return response["connectors"]
 
-    async def delete(self, name: str) -> None:
-        await self._peer.call("connectors.delete", {"name": name})
-
-    async def sync(
+    async def configure(
         self,
+        name: str,
         *,
-        connectors: list[str] | None = None,
-        extensions: list[str] | None = None,
+        tag: str | None = None,
+        config: dict[str, Any],
     ) -> None:
-        params = {
-            "connectors": connectors,
-            "extensions": extensions,
-        }
-        await self._peer.call(
-            "connectors.sync",
-            {key: value for key, value in params.items() if value is not None},
-        )
-
-    async def configure(self, connector: str | Connector, **config: Any) -> None:
-        if isinstance(connector, str):
-            name = connector
-            attached_connector = None
-        else:
-            name = connector["name"]
-            attached_connector = connector
-
         await self._peer.call(
             "connectors.configure",
-            {
-                "name": name,
-                "config": config,
-            },
+            _connector_params(name=name, tag=tag, config=config),
         )
 
-        if attached_connector is not None:
-            attached_connector["configured"] = True
+    async def catalog(self) -> list[str]:
+        response = await self._peer.call("connectors.catalog")
+        return response["connectors"]
 
-    def _definition_params(
+    async def describe(
         self,
         *,
-        name: str,
-        prompt: str | None,
-        code: str | None,
-        meta: ConnectorMetadata | str | None,
-        runtime: ConnectorRuntime | None,
-    ) -> dict[str, Any]:
-        params: dict[str, Any] = {"name": name}
+        name: str | None = None,
+        url: str | None = None,
+    ) -> ConnectorDescription:
+        return await self._peer.call(
+            "connectors.describe",
+            _connector_params(name=name, url=url),
+        )
 
-        if prompt is not None:
-            params["prompt"] = prompt
-        else:
-            if code is None or meta is None:
-                raise ValueError("either prompt or both code and meta must be supplied")
-            params["code"] = code
-            params["meta"] = connector_metadata_from_string(meta) if isinstance(meta, str) else meta
-
-        if runtime is not None:
-            params["runtime"] = runtime
-
-        return params
+    async def uninstall(self, name: str, *, tag: str | None = None) -> None:
+        await self._peer.call(
+            "connectors.uninstall",
+            _connector_params(name=name, tag=tag),
+        )
 
 
-def connector_metadata_from_string(contents: str) -> ConnectorMetadata:
-    try:
-        parsed = yaml.safe_load(contents)
-    except yaml.YAMLError:
-        parsed = json.loads(contents)
-
-    if not isinstance(parsed, dict):
-        raise ValueError("connector metadata must be an object")
-    return parsed  # type: ignore[return-value]
+def _connector_params(**values: Any) -> dict[str, Any]:
+    return {key: value for key, value in values.items() if value is not None}

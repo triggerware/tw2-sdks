@@ -3,9 +3,10 @@ use std::sync::Arc;
 use tw2_jsonrpc::prelude::*;
 
 mod configuration;
-mod connectors;
+mod types;
+mod tables;
 mod cursors;
-mod extensions;
+mod connectors;
 mod logging;
 mod agents;
 mod tools;
@@ -17,14 +18,15 @@ mod system;
 mod triggers;
 
 pub use configuration::TriggerwareConfiguration;
-pub use connectors::{
-    Connector, ConnectorColumn, ConnectorCreation, ConnectorExtension, ConnectorGenerator,
-    ConnectorMetadata, ConnectorRuntime, ConnectorsSyncOptions,
+pub use types::Runtime;
+pub use tables::{
+    Table, TableColumn, TableCreation, TableConnector, TableGenerator,
+    TableMetadata, TablesSyncOptions,
 };
 pub use cursors::{Cursor, CursorColumn, CursorCreation, RunOptions};
-pub use extensions::{
-    Extension, ExtensionAuthorization, ExtensionCatalogEntry, ExtensionDescription,
-    ExtensionInstall, ExtensionReference,
+pub use connectors::{
+    Connector, ConnectorAuthorization, ConnectorCatalogEntry, ConnectorDescription,
+    ConnectorInstall, ConnectorReference,
 };
 pub use queries::{Query, QueryCreation, QuerySignature};
 pub use system::{Health, SystemUpdate};
@@ -34,9 +36,10 @@ pub mod prelude {
     pub use tw2_jsonrpc::prelude::{Result, Value};
 
     pub use crate::configuration::TriggerwareConfiguration;
-    pub use crate::connectors::{ConnectorCreation, ConnectorRuntime, ConnectorsSyncOptions};
+    pub use crate::tables::{TableCreation, TablesSyncOptions};
+    pub use crate::Runtime;
     pub use crate::cursors::{CursorCreation, RunOptions};
-    pub use crate::extensions::{ExtensionInstall, ExtensionReference};
+    pub use crate::connectors::{ConnectorInstall, ConnectorReference};
     pub use crate::queries::QueryCreation;
     pub use crate::triggers::{TriggerCreation, TriggerOptions};
     pub use crate::TriggerwareClient;
@@ -44,9 +47,9 @@ pub mod prelude {
 
 pub struct TriggerwareClient {
     pub configuration: configuration::ConfigurationService,
-    pub connectors: connectors::ConnectorsService,
+    pub tables: tables::TablesService,
     pub cursors: cursors::CursorsService,
-    pub extensions: extensions::ExtensionsService,
+    pub connectors: connectors::ConnectorsService,
     pub logging: logging::LoggingService,
     pub agents: agents::AgentsService,
     pub tools: tools::ToolsService,
@@ -76,9 +79,9 @@ impl TriggerwareClient {
         let peer = Arc::new(peer);
         Self {
             configuration: configuration::ConfigurationService::new(peer.clone()),
-            connectors: connectors::ConnectorsService::new(peer.clone()),
+            tables: tables::TablesService::new(peer.clone()),
             cursors: cursors::CursorsService::new(peer.clone()),
-            extensions: extensions::ExtensionsService::new(peer.clone()),
+            connectors: connectors::ConnectorsService::new(peer.clone()),
             logging: logging::LoggingService::new(peer.clone()),
             agents: agents::AgentsService::new(peer.clone()),
             tools: tools::ToolsService::new(peer.clone()),

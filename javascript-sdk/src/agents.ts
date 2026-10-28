@@ -11,7 +11,7 @@ export class AgentsService {
     await this.#peer.call("agents.run", { name, data })
   }
 
-  async sync(options: { agents?: string[]; extensions?: string[] } = {}): Promise<void> {
+  async sync(options: { agents?: string[]; connectors?: string[] } = {}): Promise<void> {
     await this.#peer.call("agents.sync", options)
   }
 }

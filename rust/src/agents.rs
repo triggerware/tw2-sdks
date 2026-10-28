@@ -43,8 +43,8 @@ impl AgentsService {
         Ok(response.agents)
     }
 
-    pub async fn sync(&self, agents: Option<Vec<String>>, extensions: Option<Vec<String>>) -> Result<()> {
-        self.peer.call("agents.sync", params!({"agents":agents,"extensions":extensions})).await
+    pub async fn sync(&self, agents: Option<Vec<String>>, connectors: Option<Vec<String>>) -> Result<()> {
+        self.peer.call("agents.sync", params!({"agents":agents,"connectors":connectors})).await
     }
     pub fn new(peer: Arc<Peer>) -> Self {
         Self { peer }

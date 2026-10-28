@@ -1,8 +1,8 @@
 import { connectTcp as rpcConnectTcp, connectWs as rpcConnectWs, type Peer } from "tw2-jsonrpc"
 import { ConfigurationService } from "./configuration.js"
-import { ConnectorsService } from "./connectors.js"
+import { TablesService } from "./tables.js"
 import { CursorsService } from "./cursors.js"
-import { ExtensionsService } from "./extensions.js"
+import { ConnectorsService } from "./connectors.js"
 import { AgentsService } from "./agents.js"
 import { QueriesService } from "./queries.js"
 import { RuntimesService } from "./runtimes.js"
@@ -12,9 +12,9 @@ import { splitAddress } from "./utils.js"
 
 export class TriggerwareClient {
   readonly configuration: ConfigurationService
-  readonly connectors: ConnectorsService
+  readonly tables: TablesService
   readonly cursors: CursorsService
-  readonly extensions: ExtensionsService
+  readonly connectors: ConnectorsService
   readonly agents: AgentsService
   readonly queries: QueriesService
   readonly runtimes: RuntimesService
@@ -26,9 +26,9 @@ export class TriggerwareClient {
   constructor(peer: Peer) {
     this.#peer = peer
     this.configuration = new ConfigurationService(peer)
-    this.connectors = new ConnectorsService(peer)
+    this.tables = new TablesService(peer)
     this.cursors = new CursorsService(peer)
-    this.extensions = new ExtensionsService(peer)
+    this.connectors = new ConnectorsService(peer)
     this.agents = new AgentsService(peer)
     this.queries = new QueriesService(peer)
     this.runtimes = new RuntimesService(peer)

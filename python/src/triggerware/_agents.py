@@ -16,9 +16,9 @@ class AgentsService:
         self,
         *,
         agents: list[str] | None = None,
-        extensions: list[str] | None = None,
+        connectors: list[str] | None = None,
     ) -> None:
         await self._peer.call(
             "agents.sync",
-            {"agents": agents, "extensions": extensions},
+            {"agents": agents, "connectors": connectors},
         )

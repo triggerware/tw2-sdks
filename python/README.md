@@ -14,7 +14,7 @@ from triggerware import TriggerwareClient
 client = await TriggerwareClient.connect_tcp("localhost:5221")
 
 health = await client.system.health()
-cursor = await client.cursors.open(sql="select * from my_connector")
+cursor = await client.cursors.open(sql="select * from my_table")
 
 async for row in cursor:
     print(row)

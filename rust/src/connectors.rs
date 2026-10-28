@@ -1,113 +1,73 @@
-use std::fmt;
-use std::str::FromStr;
 use std::sync::Arc;
 
 use tw2_jsonrpc::prelude::*;
-
 use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DefaultOnNull};
-
-#[serde_as]
-#[derive(Serialize, Deserialize)]
-pub struct Connector {
-    #[serde(skip)]
-    peer: Option<Arc<Peer>>,
-    #[serde(skip_deserializing)]
-    name: String,
-    meta: ConnectorMetadata,
-    code: String,
-    #[serde(default)]
-    #[serde_as(deserialize_as = "DefaultOnNull")]
-    runtime: ConnectorRuntime,
-    extension: Option<ConnectorExtension>,
-    configured: bool,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ConnectorExtension {
-    pub name: String,
-    pub tag: Option<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ConnectorMetadata {
-    pub description: String,
-    pub columns: Vec<ConnectorColumn>,
-    pub generators: Vec<ConnectorGenerator>,
-    #[serde(default)]
-    pub config_schema: Value,
-}
-
-impl ConnectorMetadata {
-    pub fn from_string(contents: impl AsRef<str>) -> Result<Self> {
-        contents.as_ref().parse()
-    }
-}
-
-impl FromStr for ConnectorMetadata {
-    type Err = JsonRpcError;
-
-    fn from_str(contents: &str) -> Result<Self> {
-        match serde_yaml::from_str(contents) {
-            Ok(meta) => Ok(meta),
-            Err(_) => serde_json::from_str(contents).map_err(|error| JsonRpcError {
-                message: format!("invalid connector metadata: {error}"),
-                ..JsonRpcError::invalid_params()
-            }),
-        }
-    }
-}
-
-impl fmt::Display for ConnectorMetadata {
-    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let value = serde_yaml::to_string(self).map_err(|_| fmt::Error)?;
-        formatter.write_str(&value)
-    }
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ConnectorColumn {
-    pub name: String,
-    #[serde(rename = "type")]
-    pub ty: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct ConnectorGenerator {
-    pub name: String,
-    pub inputs: Vec<String>,
-}
-
-#[derive(Clone, Copy, Default, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ConnectorRuntime {
-    #[default]
-    Lua,
-    Python,
-    Node,
-}
+use serde_json::Map;
 
 pub struct ConnectorsService {
     peer: Arc<Peer>,
 }
 
-#[derive(Default, Serialize, Params)]
-#[serde_with::skip_serializing_none]
-pub struct ConnectorsSyncOptions {
-    pub connectors: Option<Vec<String>>,
-    pub extensions: Option<Vec<String>>,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Connector {
+    #[serde(skip_deserializing)]
+    name: String,
+    #[serde(skip_deserializing)]
+    tag: Option<String>,
+    pub config: Option<Map<String, Value>>,
+    pub tables: Vec<String>,
+    pub tools: Vec<String>,
+    pub agents: Vec<String>,
 }
 
-pub enum ConnectorCreation {
-    Prompt {
-        prompt: String,
-        code: Option<String>,
-        meta: Option<ConnectorMetadata>,
-    },
-    Code {
-        code: String,
-        meta: ConnectorMetadata,
-    },
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectorDescription {
+    pub description: String,
+    pub config_schema: Map<String, Value>,
+    #[serde(default)]
+    pub oauth_provider: Option<String>,
+    pub runtime: Option<crate::Runtime>,
+    pub dependencies: Option<Vec<String>>,
+    pub tables: Vec<String>,
+    pub tools: Vec<String>,
+    pub agents: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ConnectorCatalogEntry {
+    pub name: String,
+    pub description: String,
+}
+
+#[derive(Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct ConnectorInstall {
+    pub name: Option<String>,
+    pub url: Option<String>,
+    pub tag: Option<String>,
+    pub config: Map<String, Value>,
+}
+
+#[derive(Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct ConnectorReference {
+    pub name: Option<String>,
+    pub url: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ConnectorAuthorization {
+    pub url: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct ConnectorList {
+    connectors: Vec<String>,
+}
+
+#[derive(Deserialize)]
+struct ConnectorCatalog {
+    connectors: Vec<ConnectorCatalogEntry>,
 }
 
 impl ConnectorsService {
@@ -115,85 +75,132 @@ impl ConnectorsService {
         ConnectorsService { peer }
     }
 
-    pub async fn create(
+    pub async fn install(&self, install: ConnectorInstall) -> Result<ConnectorAuthorization> {
+        self.peer.call("connectors.install", install).await
+    }
+
+    pub async fn install_secure(
+        &self,
+        name: Option<impl Into<String>>,
+        url: Option<impl Into<String>>,
+        tag: Option<impl Into<String>>,
+    ) -> Result<ConnectorAuthorization> {
+        let mut params = params!().with("secure", true)?;
+        if let Some(name) = name {
+            params = params.with("name", name.into())?;
+        }
+        if let Some(url) = url {
+            params = params.with("url", url.into())?;
+        }
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        self.peer.call("connectors.install", params).await
+    }
+
+    pub async fn authorize(
         &self,
         name: impl Into<String>,
-        create: ConnectorCreation,
-        runtime: ConnectorRuntime,
+        tag: Option<impl Into<String>>,
+    ) -> Result<ConnectorAuthorization> {
+        let mut params = params!().with("name", name.into())?;
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        self.peer.call("connectors.authorize", params).await
+    }
+
+    pub async fn get(
+        &self,
+        name: impl Into<String>,
+        tag: Option<impl Into<String>>,
     ) -> Result<Connector> {
         let name = name.into();
-        let mut params = params!()
-            .with("name", name.clone())?
-            .with("runtime", runtime)?;
-
-        params = match create {
-            ConnectorCreation::Prompt { prompt, code, meta } => params
-                .with("prompt", prompt)?
-                .with("code", code)?
-                .with("meta", meta)?,
-            ConnectorCreation::Code { code, meta } => {
-                params.with("code", code)?.with("meta", meta)?
-            }
-        };
-
-        let mut connector: Connector = self.peer.call("connectors.create", params).await?;
-        connector.peer = Some(self.peer.clone());
+        let tag = tag.map(Into::into);
+        let mut params = params!().with("name", name.clone())?;
+        if let Some(tag) = tag.clone() {
+            params = params.with("tag", tag)?;
+        }
+        let mut connector: Connector = self
+            .peer
+            .call("connectors.get", params)
+            .await?;
         connector.name = name;
+        connector.tag = tag;
         Ok(connector)
     }
 
-    pub async fn get(&self, name: impl Into<String>) -> Result<Connector> {
-        let name = name.into();
-        let mut conn: Connector = self
-            .peer
-            .call("connectors.get", params!({"name": name}))
-            .await?;
-        conn.peer = Some(self.peer.clone());
-        conn.name = name;
-        Ok(conn)
-    }
-
     pub async fn list(&self) -> Result<Vec<String>> {
-        #[derive(Deserialize)]
-        struct ConnectorList {
-            connectors: Vec<String>,
-        }
-        let response: ConnectorList = self.peer.call("connectors.list", ()).await?;
-        Ok(response.connectors)
+        self.peer
+            .call::<ConnectorList>("connectors.list", ())
+            .await
+            .map(|response| response.connectors)
     }
 
-    pub async fn sync(&self, options: ConnectorsSyncOptions) -> Result<()> {
-        self.peer.call("connectors.sync", options).await
-    }
-
-    pub async fn configure<C>(&self, name: impl Into<String>, config: C) -> Result<()>
+    pub async fn configure<C>(
+        &self,
+        name: impl Into<String>,
+        tag: Option<impl Into<String>>,
+        config: C,
+    ) -> Result<()>
     where
         C: Serialize,
     {
-        let params = params!({
-            "name": name.into(),
-            "config": config
-        });
-        self.peer.call::<()>("connectors.configure", params).await
+        let mut params = params!()
+            .with("name", name.into())?
+            .with("config", config)?;
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        self.peer
+            .call::<()>("connectors.configure", params)
+            .await
     }
 
-    pub async fn configure_secure(&self, name: impl Into<String>) -> Result<Option<String>> {
+    pub async fn configure_secure(
+        &self,
+        name: impl Into<String>,
+        tag: Option<impl Into<String>>,
+    ) -> Result<Option<String>> {
         #[derive(Deserialize)]
         struct SecureConfiguration {
             url: String,
         }
 
-        let response: Option<SecureConfiguration> = self
-            .peer
-            .call(
-                "connectors.configure",
-                params!({
-                    "name": name.into(),
-                    "secure": true
-                }),
-            )
-            .await?;
+        let mut params = params!()
+            .with("name", name.into())?
+            .with("secure", true)?;
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        let response: Option<SecureConfiguration> =
+            self.peer.call("connectors.configure", params).await?;
         Ok(response.map(|response| response.url))
+    }
+
+    pub async fn catalog(&self) -> Result<Vec<ConnectorCatalogEntry>> {
+        self.peer
+            .call::<ConnectorCatalog>("connectors.catalog", ())
+            .await
+            .map(|response| response.connectors)
+    }
+
+    pub async fn describe(&self, reference: ConnectorReference) -> Result<ConnectorDescription> {
+        self.peer.call("connectors.describe", reference).await
+    }
+
+    pub async fn uninstall(
+        &self,
+        name: impl Into<String>,
+        tag: Option<impl Into<String>>,
+    ) -> Result<()> {
+        let mut params = params!().with("name", name.into())?;
+        if let Some(tag) = tag {
+            params = params.with("tag", tag.into())?;
+        }
+        self.peer
+            .call("connectors.uninstall", params)
+            .await
     }
 }
 
@@ -201,73 +208,8 @@ impl Connector {
     pub fn name(&self) -> &str {
         &self.name
     }
-    pub fn meta(&self) -> &ConnectorMetadata {
-        &self.meta
-    }
-    pub fn code(&self) -> &str {
-        &self.code
-    }
-    pub fn runtime(&self) -> &ConnectorRuntime {
-        &self.runtime
-    }
-    pub fn extension(&self) -> Option<&ConnectorExtension> {
-        self.extension.as_ref()
-    }
-    pub fn is_configured(&self) -> bool {
-        self.configured
-    }
-    pub async fn update(
-        &mut self,
-        update: ConnectorCreation,
-        runtime: ConnectorRuntime,
-    ) -> Result<()> {
-        let peer = self.peer()?;
-        let mut params = params!({
-            "name": self.name.clone(),
-            "runtime": runtime
-        });
 
-        params = match update {
-            ConnectorCreation::Prompt { prompt, code, meta } => params
-                .with("prompt", prompt)?
-                .with("code", code)?
-                .with("meta", meta)?,
-            ConnectorCreation::Code { code, meta } => {
-                params.with("code", code)?.with("meta", meta)?
-            }
-        };
-
-        let name = self.name.clone();
-        let mut connector: Connector = peer.call("connectors.update", params).await?;
-        connector.peer = Some(peer);
-        connector.name = name;
-        *self = connector;
-
-        Ok(())
-    }
-
-    pub async fn delete(self) -> Result<()> {
-        self.peer()?
-            .call("connectors.delete", params!({"name": self.name}))
-            .await
-    }
-
-    pub async fn configure<C>(&mut self, config: C) -> Result<()>
-    where
-        C: Serialize,
-    {
-        let params = params!({
-            "name": self.name.clone(),
-            "config": config
-        });
-        self.peer()?.call::<()>("connectors.configure", params).await?;
-        self.configured = true;
-        Ok(())
-    }
-
-    fn peer(&self) -> Result<Arc<Peer>> {
-        self.peer
-            .clone()
-            .ok_or_else(|| JsonRpcError::internal_error("connector is not attached to a peer"))
+    pub fn tag(&self) -> Option<&str> {
+        self.tag.as_deref()
     }
 }

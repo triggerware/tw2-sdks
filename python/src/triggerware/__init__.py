@@ -1,14 +1,14 @@
 from ._client import TriggerwareClient
 from ._configuration import Configuration
-from ._connectors import (
-    ConnectorColumn,
-    ConnectorGenerator,
-    ConnectorMetadata,
-    ConnectorRuntime,
-    connector_metadata_from_string,
+from ._tables import (
+    TableColumn,
+    TableGenerator,
+    TableMetadata,
+    TableRuntime,
+    table_metadata_from_string,
 )
 from ._cursors import CursorColumn
-from ._extensions import Extension, ExtensionDescription, ExtensionRuntime
+from ._connectors import Connector, ConnectorDescription, ConnectorRuntime
 from ._logging import LogLevel
 from ._queries import QuerySignature
 from ._runtimes import Runtime
@@ -20,15 +20,15 @@ from ._triggers import (
 
 __all__ = [
     "Configuration",
-    "ConnectorColumn",
-    "ConnectorGenerator",
-    "ConnectorMetadata",
-    "ConnectorRuntime",
-    "connector_metadata_from_string",
+    "TableColumn",
+    "TableGenerator",
+    "TableMetadata",
+    "TableRuntime",
+    "table_metadata_from_string",
     "CursorColumn",
-    "Extension",
-    "ExtensionDescription",
-    "ExtensionRuntime",
+    "Connector",
+    "ConnectorDescription",
+    "ConnectorRuntime",
     "LogLevel",
     "QuerySignature",
     "Runtime",

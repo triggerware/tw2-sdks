@@ -10,7 +10,7 @@ pub struct ToolWrite {
     pub prompt: Option<String>,
     pub code: Option<String>,
     pub meta: Option<Value>,
-    pub runtime: Option<crate::ConnectorRuntime>,
+    pub runtime: Option<crate::Runtime>,
 }
 
 pub struct ToolsService { peer: Arc<Peer> }
@@ -41,8 +41,8 @@ impl ToolsService {
         Ok(response.tools)
     }
 
-    pub async fn sync(&self, tools: Option<Vec<String>>, extensions: Option<Vec<String>>) -> Result<()> {
-        self.peer.call("tools.sync", params!({"tools":tools,"extensions":extensions})).await
+    pub async fn sync(&self, tools: Option<Vec<String>>, connectors: Option<Vec<String>>) -> Result<()> {
+        self.peer.call("tools.sync", params!({"tools":tools,"connectors":connectors})).await
     }
 
     pub async fn configure(&self, name: impl Into<String>, config: Option<Map<String, Value>>, secure: bool) -> Result<Value> {

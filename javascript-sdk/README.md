@@ -8,7 +8,7 @@ import { TriggerwareClient } from "triggerware"
 const client = await TriggerwareClient.connectTcp("localhost:5221")
 
 const health = await client.system.health()
-const cursor = await client.cursors.open({ sql: "select * from my_connector" })
+const cursor = await client.cursors.open({ sql: "select * from my_table" })
 
 for await (const row of cursor) {
   console.log(row)

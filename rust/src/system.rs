@@ -15,7 +15,7 @@ pub struct Health {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SystemUpdate {
     pub runtimes: Vec<String>,
-    pub extension: String,
+    pub connector: String,
     pub artifact: String,
     pub restart_required: bool,
 }

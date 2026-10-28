@@ -5,9 +5,9 @@ from typing import Self
 import tw2_jsonrpc as rpc
 
 from ._configuration import ConfigurationService
-from ._connectors import ConnectorsService
+from ._tables import TablesService
 from ._cursors import CursorsService
-from ._extensions import ExtensionsService
+from ._connectors import ConnectorsService
 from ._logging import LoggingService
 from ._agents import AgentsService
 from ._queries import QueriesService
@@ -21,9 +21,9 @@ class TriggerwareClient:
     def __init__(self, peer: rpc.Peer) -> None:
         self._peer = peer
         self.configuration = ConfigurationService(peer)
-        self.connectors = ConnectorsService(peer)
+        self.tables = TablesService(peer)
         self.cursors = CursorsService(peer)
-        self.extensions = ExtensionsService(peer)
+        self.connectors = ConnectorsService(peer)
         self.logging = LoggingService(peer)
         self.agents = AgentsService(peer)
         self.queries = QueriesService(peer)
