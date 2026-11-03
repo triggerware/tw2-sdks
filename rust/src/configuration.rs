@@ -1,18 +1,36 @@
 use std::sync::Arc;
 
-use tw2_jsonrpc::prelude::*;
 use serde::{Deserialize, Serialize};
+use tw2_jsonrpc::prelude::*;
 
-#[derive(Default, Serialize, Deserialize, Params)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Configuration {
+    pub default_timeout_ms: u64,
+    pub default_batch_size: usize,
+    pub default_trigger_batch_size: usize,
+    pub agent_provider: String,
+    pub agent_model: String,
+    pub max_log_file_size: String,
+}
+
+#[derive(Default, Serialize, Params)]
 #[serde_with::skip_serializing_none]
-pub struct TriggerwareConfiguration {
-  pub default_timeout_ms: Option<u64>,
-  pub default_batch_size: Option<u64>,
-  pub default_trigger_batch_size: Option<u64>,
-  pub agent_provider: Option<String>,
-  pub agent_model: Option<String>,
-  pub agent_api_key: Option<String>,
-  pub max_log_file_size: Option<String>,
+pub struct ConfigurationUpdate {
+    pub default_timeout_ms: Option<u64>,
+    pub default_batch_size: Option<usize>,
+    pub default_trigger_batch_size: Option<usize>,
+    pub agent_provider: Option<String>,
+    pub agent_model: Option<String>,
+    pub agent_api_key: Option<String>,
+    pub max_log_file_size: Option<String>,
+    pub secure: Option<bool>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(untagged)]
+pub enum ConfigurationResult {
+    Configuration(Configuration),
+    Authorization { url: String },
 }
 
 pub struct ConfigurationService {
@@ -20,27 +38,19 @@ pub struct ConfigurationService {
 }
 
 impl ConfigurationService {
-    pub fn new(peer: Arc<Peer>) -> ConfigurationService {
-        ConfigurationService { peer }
+    pub fn new(peer: Arc<Peer>) -> Self {
+        Self { peer }
     }
 
-    pub async fn get(&self) -> Result<TriggerwareConfiguration> {
-        self.peer.call("configuration.get", params!()).await
+    pub async fn get(&self) -> Result<Configuration> {
+        self.peer.call("configuration.get", ()).await
     }
-    pub async fn set(&self, config: TriggerwareConfiguration) -> Result<TriggerwareConfiguration> {
-        self.peer.call("configuration.set", config).await
+
+    pub async fn set(&self, options: ConfigurationUpdate) -> Result<ConfigurationResult> {
+        self.peer.call("configuration.set", options).await
     }
-    pub async fn set_secure(&self) -> Result<String> {
-        #[derive(Deserialize)]
-        struct SecureConfiguration {
-            url: String,
-        }
-        let response: SecureConfiguration = self.peer
-            .call("configuration.set", params!({ "secure": true }))
-            .await?;
-        Ok(response.url)
-    }
-    pub async fn refresh(&self) -> Result<TriggerwareConfiguration> {
-        self.peer.call("configuration.refresh", params!()).await
+
+    pub async fn refresh(&self) -> Result<Configuration> {
+        self.peer.call("configuration.refresh", ()).await
     }
 }

@@ -2,25 +2,18 @@ use std::fmt;
 use std::str::FromStr;
 use std::sync::Arc;
 
+use serde::{Deserialize, Serialize};
 use tw2_jsonrpc::prelude::*;
 
-use serde::{Deserialize, Serialize};
-use serde_with::{serde_as, DefaultOnNull};
-
-#[serde_as]
 #[derive(Serialize, Deserialize)]
 pub struct Table {
-    #[serde(skip)]
-    peer: Option<Arc<Peer>>,
-    #[serde(skip_deserializing)]
-    name: String,
-    meta: TableMetadata,
-    code: String,
-    #[serde(default)]
-    #[serde_as(deserialize_as = "DefaultOnNull")]
-    runtime: crate::Runtime,
-    connector: Option<TableConnector>,
-    configured: bool,
+    pub name: String,
+    pub prompt: Option<String>,
+    pub meta: TableMetadata,
+    pub code: String,
+    pub runtime: crate::Runtime,
+    pub connector: Option<TableConnector>,
+    pub configured: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -36,12 +29,6 @@ pub struct TableMetadata {
     pub generators: Vec<TableGenerator>,
     #[serde(default)]
     pub config_schema: Value,
-}
-
-impl TableMetadata {
-    pub fn from_string(contents: impl AsRef<str>) -> Result<Self> {
-        contents.as_ref().parse()
-    }
 }
 
 impl FromStr for TableMetadata {
@@ -78,10 +65,6 @@ pub struct TableGenerator {
     pub inputs: Vec<String>,
 }
 
-pub struct TablesService {
-    peer: Arc<Peer>,
-}
-
 #[derive(Default, Serialize, Params)]
 #[serde_with::skip_serializing_none]
 pub struct TablesSyncOptions {
@@ -89,59 +72,54 @@ pub struct TablesSyncOptions {
     pub connectors: Option<Vec<String>>,
 }
 
-pub enum TableCreation {
-    Prompt {
-        prompt: String,
-        code: Option<String>,
-        meta: Option<TableMetadata>,
-    },
-    Code {
-        code: String,
-        meta: TableMetadata,
-    },
+/// Creation requires name, code, and meta unless prompt is supplied.
+/// Updates require name; omitted fields keep their current values.
+#[derive(Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct TableWrite {
+    pub name: Option<String>,
+    pub prompt: Option<String>,
+    pub code: Option<String>,
+    pub meta: Option<TableMetadata>,
+    pub runtime: Option<crate::Runtime>,
+}
+
+pub struct TablesService {
+    peer: Arc<Peer>,
 }
 
 impl TablesService {
-    pub fn new(peer: Arc<Peer>) -> TablesService {
-        TablesService { peer }
+    pub fn new(peer: Arc<Peer>) -> Self {
+        Self { peer }
     }
 
-    pub async fn create(
-        &self,
-        name: impl Into<String>,
-        create: TableCreation,
-        runtime: crate::Runtime,
-    ) -> Result<Table> {
-        let name = name.into();
-        let mut params = params!()
-            .with("name", name.clone())?
-            .with("runtime", runtime)?;
-
-        params = match create {
-            TableCreation::Prompt { prompt, code, meta } => params
-                .with("prompt", prompt)?
-                .with("code", code)?
-                .with("meta", meta)?,
-            TableCreation::Code { code, meta } => {
-                params.with("code", code)?.with("meta", meta)?
-            }
-        };
-
-        let mut table: Table = self.peer.call("tables.create", params).await?;
-        table.peer = Some(self.peer.clone());
-        table.name = name;
-        Ok(table)
+    pub async fn create(&self, options: TableWrite) -> Result<Table> {
+        if options.prompt.is_none()
+            && (options.name.is_none() || options.code.is_none() || options.meta.is_none())
+        {
+            return Err(JsonRpcError::invalid_params());
+        }
+        self.peer.call("tables.create", options).await
     }
 
-    pub async fn get(&self, name: impl Into<String>) -> Result<Table> {
-        let name = name.into();
-        let mut table: Table = self
-            .peer
-            .call("tables.get", params!({"name": name}))
-            .await?;
-        table.peer = Some(self.peer.clone());
-        table.name = name;
-        Ok(table)
+    pub async fn update(&self, options: TableWrite) -> Result<Table> {
+        if options.name.is_none() {
+            return Err(JsonRpcError::invalid_params());
+        }
+        self.peer.call("tables.update", options).await
+    }
+
+    pub async fn get(&self, names: Vec<String>) -> Result<Vec<Table>> {
+        #[derive(Deserialize)]
+        struct TableList {
+            tables: Vec<Table>,
+        }
+        let response: TableList = self.peer.call("tables.get", params!({"name": names})).await?;
+        Ok(response.tables)
+    }
+
+    pub async fn delete(&self, names: Vec<String>) -> Result<()> {
+        self.peer.call("tables.delete", params!({"name": names})).await
     }
 
     pub async fn list(&self) -> Result<Vec<String>> {
@@ -157,108 +135,7 @@ impl TablesService {
         self.peer.call("tables.sync", options).await
     }
 
-    pub async fn configure<C>(&self, name: impl Into<String>, config: C) -> Result<()>
-    where
-        C: Serialize,
-    {
-        let params = params!({
-            "name": name.into(),
-            "config": config
-        });
-        self.peer.call::<()>("tables.configure", params).await
-    }
-
-    pub async fn configure_secure(&self, name: impl Into<String>) -> Result<Option<String>> {
-        #[derive(Deserialize)]
-        struct SecureConfiguration {
-            url: String,
-        }
-
-        let response: Option<SecureConfiguration> = self
-            .peer
-            .call(
-                "tables.configure",
-                params!({
-                    "name": name.into(),
-                    "secure": true
-                }),
-            )
-            .await?;
-        Ok(response.map(|response| response.url))
-    }
-}
-
-impl Table {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-    pub fn meta(&self) -> &TableMetadata {
-        &self.meta
-    }
-    pub fn code(&self) -> &str {
-        &self.code
-    }
-    pub fn runtime(&self) -> &crate::Runtime {
-        &self.runtime
-    }
-    pub fn connector(&self) -> Option<&TableConnector> {
-        self.connector.as_ref()
-    }
-    pub fn is_configured(&self) -> bool {
-        self.configured
-    }
-    pub async fn update(
-        &mut self,
-        update: TableCreation,
-        runtime: crate::Runtime,
-    ) -> Result<()> {
-        let peer = self.peer()?;
-        let mut params = params!({
-            "name": self.name.clone(),
-            "runtime": runtime
-        });
-
-        params = match update {
-            TableCreation::Prompt { prompt, code, meta } => params
-                .with("prompt", prompt)?
-                .with("code", code)?
-                .with("meta", meta)?,
-            TableCreation::Code { code, meta } => {
-                params.with("code", code)?.with("meta", meta)?
-            }
-        };
-
-        let name = self.name.clone();
-        let mut table: Table = peer.call("tables.update", params).await?;
-        table.peer = Some(peer);
-        table.name = name;
-        *self = table;
-
-        Ok(())
-    }
-
-    pub async fn delete(self) -> Result<()> {
-        self.peer()?
-            .call("tables.delete", params!({"name": self.name}))
-            .await
-    }
-
-    pub async fn configure<C>(&mut self, config: C) -> Result<()>
-    where
-        C: Serialize,
-    {
-        let params = params!({
-            "name": self.name.clone(),
-            "config": config
-        });
-        self.peer()?.call::<()>("tables.configure", params).await?;
-        self.configured = true;
-        Ok(())
-    }
-
-    fn peer(&self) -> Result<Arc<Peer>> {
-        self.peer
-            .clone()
-            .ok_or_else(|| JsonRpcError::internal_error("table is not attached to a peer"))
+    pub async fn configure(&self, options: crate::ResourceConfiguration) -> Result<crate::AuthorizationResult> {
+        self.peer.call("tables.configure", options).await
     }
 }

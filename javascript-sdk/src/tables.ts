@@ -1,9 +1,7 @@
 import type { Peer } from "tw2-jsonrpc"
 import YAML from "yaml"
-import type { JsonObject, Runtime } from "./types.js"
+import type { AuthorizationResult, JsonObject, Runtime } from "./types.js"
 import { definedParams } from "./utils.js"
-
-export type TableRuntime = Runtime
 
 export interface TableColumn {
   name: string
@@ -34,21 +32,36 @@ export interface TableConnector {
   tag?: string
 }
 
-interface TableWire {
-  meta: TableMetadataWire
+export interface Table {
+  name: string
+  prompt?: string
+  meta: TableMetadata
   code: string
-  runtime?: TableRuntime
+  runtime: Runtime
   connector?: TableConnector
   configured: boolean
 }
 
-export type TableDefinition =
-  | { prompt: string; runtime?: TableRuntime }
-  | { code: string; meta: TableMetadata | string; runtime?: TableRuntime }
-
-interface TableList {
-  tables: string[]
+interface TableWire {
+  name: string
+  prompt?: string
+  meta: TableMetadataWire
+  code: string
+  runtime: Runtime
+  connector?: TableConnector
+  configured: boolean
 }
+
+export interface TableUpdate {
+  prompt?: string
+  code?: string
+  meta?: TableMetadata | string
+  runtime?: Runtime
+}
+
+export type TableCreation =
+  | (TableUpdate & { name?: string; prompt: string })
+  | (TableUpdate & { name: string; code: string; meta: TableMetadata | string })
 
 export interface TablesSyncOptions {
   tables?: string[]
@@ -62,126 +75,65 @@ export class TablesService {
     this.#peer = peer
   }
 
-  async create(name: string, definition: TableDefinition): Promise<Table> {
-    const wire = await this.#peer.call<TableWire>(
+  async create(creation: TableCreation): Promise<Table> {
+    return tableFromWire(await this.#peer.call<TableWire>(
       "tables.create",
-      tableParams(name, definition),
-    )
-    return new Table(this.#peer, name, wire)
+      tableParams(creation.name, creation),
+    ))
   }
 
-  async get(name: string): Promise<Table> {
-    const wire = await this.#peer.call<TableWire>("tables.get", { name })
-    return new Table(this.#peer, name, wire)
+  async get(name: string | string[]): Promise<Table | Table[]> {
+    if (typeof name === "string") {
+      return tableFromWire(await this.#peer.call<TableWire>("tables.get", { name }))
+    }
+    const response = await this.#peer.call<{ tables: TableWire[] }>("tables.get", { name })
+    return response.tables.map(tableFromWire)
+  }
+
+  async update(name: string, update: TableUpdate): Promise<Table> {
+    return tableFromWire(await this.#peer.call<TableWire>(
+      "tables.update",
+      tableParams(name, update),
+    ))
   }
 
   async list(): Promise<string[]> {
-    const response = await this.#peer.call<TableList>("tables.list")
+    const response = await this.#peer.call<{ tables: string[] }>("tables.list")
     return response.tables
+  }
+
+  delete(name: string | string[]): Promise<void> {
+    return this.#peer.call<void>("tables.delete", { name })
   }
 
   sync(options: TablesSyncOptions = {}): Promise<void> {
     return this.#peer.call<void>("tables.sync", definedParams(options))
   }
 
-  configure(name: string, config: JsonObject): Promise<void> {
-    return this.#peer.call<void>("tables.configure", { name, config })
+  configure(
+    name: string,
+    options: { config?: JsonObject; secure?: boolean } = {},
+  ): Promise<AuthorizationResult> {
+    return this.#peer.call<AuthorizationResult>("tables.configure", definedParams({ name, ...options }))
   }
 }
 
-export class Table {
-  readonly #peer: Peer
-  #name: string
-  #meta: TableMetadata
-  #code: string
-  #runtime?: TableRuntime
-  #connector?: TableConnector
-  #configured: boolean
-
-  constructor(peer: Peer, name: string, wire: TableWire) {
-    this.#peer = peer
-    this.#name = name
-    this.#meta = metadataFromWire(wire.meta)
-    this.#code = wire.code
-    this.#runtime = wire.runtime
-    this.#connector = wire.connector
-    this.#configured = wire.configured
-  }
-
-  get name(): string {
-    return this.#name
-  }
-
-  get meta(): TableMetadata {
-    return this.#meta
-  }
-
-  get code(): string {
-    return this.#code
-  }
-
-  get runtime(): TableRuntime | undefined {
-    return this.#runtime
-  }
-
-  get connector(): TableConnector | undefined {
-    return this.#connector
-  }
-
-  get configured(): boolean {
-    return this.#configured
-  }
-
-  async update(definition: TableDefinition): Promise<void> {
-    const wire = await this.#peer.call<TableWire>(
-      "tables.update",
-      tableParams(this.#name, definition),
-    )
-    this.#replace(wire)
-  }
-
-  async configure(config: JsonObject): Promise<void> {
-    await this.#peer.call<void>("tables.configure", {
-      name: this.#name,
-      config,
-    })
-    this.#configured = true
-  }
-
-  delete(): Promise<void> {
-    return this.#peer.call<void>("tables.delete", { name: this.#name })
-  }
-
-  #replace(wire: TableWire): void {
-    this.#meta = metadataFromWire(wire.meta)
-    this.#code = wire.code
-    this.#runtime = wire.runtime
-    this.#connector = wire.connector
-    this.#configured = wire.configured
-  }
-}
-
-function tableParams(name: string, definition: TableDefinition): JsonObject {
+function tableParams(name: string | undefined, definition: TableUpdate): JsonObject {
   return definedParams({
     name,
-    prompt: "prompt" in definition ? definition.prompt : undefined,
-    code: "code" in definition ? definition.code : undefined,
-    meta: "meta" in definition ? metadataToWire(definition.meta) : undefined,
+    prompt: definition.prompt,
+    code: definition.code,
+    meta: definition.meta === undefined ? undefined : metadataToWire(definition.meta),
     runtime: definition.runtime,
   })
 }
 
 export function tableMetadataFromString(contents: string): TableMetadata {
-  let parsed: unknown
-  try {
-    parsed = YAML.parse(contents)
-  } catch {
-    parsed = JSON.parse(contents)
-  }
-  if (!isObject(parsed)) {
+  const parsed: unknown = YAML.parse(contents)
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     throw new Error("table metadata must be an object")
   }
-  return metadataFromWire(parsed as unknown as TableMetadataWire)
+  return metadataFromWire(parsed as TableMetadataWire)
 }
 
 function metadataToWire(meta: TableMetadata | string): TableMetadataWire {
@@ -205,6 +157,6 @@ function metadataFromWire(meta: TableMetadataWire): TableMetadata {
   }) as unknown as TableMetadata
 }
 
-function isObject(value: unknown): value is JsonObject {
-  return typeof value === "object" && value !== null && !Array.isArray(value)
+function tableFromWire(table: TableWire): Table {
+  return { ...table, meta: metadataFromWire(table.meta) }
 }

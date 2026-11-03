@@ -1,7 +1,14 @@
 use std::sync::Arc;
 
 use tw2_jsonrpc::prelude::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ExternalRuntime {
+    Python,
+    Node,
+}
 
 pub struct RuntimesService {
     peer: Arc<Peer>,
@@ -9,7 +16,7 @@ pub struct RuntimesService {
 
 #[derive(Deserialize)]
 struct RuntimeList {
-    runtimes: Vec<String>,
+    runtimes: Vec<ExternalRuntime>,
 }
 
 impl RuntimesService {
@@ -17,22 +24,22 @@ impl RuntimesService {
         RuntimesService { peer }
     }
 
-    pub async fn list(&self) -> Result<Vec<String>> {
+    pub async fn list(&self) -> Result<Vec<ExternalRuntime>> {
         self.peer
             .call::<RuntimeList>("runtimes.list", ())
             .await
             .map(|response| response.runtimes)
     }
 
-    pub async fn install(&self, name: impl Into<String>) -> Result<()> {
+    pub async fn install(&self, name: ExternalRuntime) -> Result<()> {
         self.peer
-            .call("runtimes.install", params!({"name": name.into()}))
+            .call("runtimes.install", params!({"name": name}))
             .await
     }
 
-    pub async fn uninstall(&self, name: impl Into<String>) -> Result<()> {
+    pub async fn uninstall(&self, name: ExternalRuntime) -> Result<()> {
         self.peer
-            .call("runtimes.uninstall", params!({"name": name.into()}))
+            .call("runtimes.uninstall", params!({"name": name}))
             .await
     }
 }

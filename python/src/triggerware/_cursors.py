@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, NotRequired, TypedDict
+from typing import Any, TypedDict
 
 import tw2_jsonrpc as rpc
 
@@ -92,6 +92,8 @@ class CursorsService:
         batch_size: int | None = None,
         timeout_ms: int | None = None,
     ) -> Cursor:
+        if (sql is None) == (prompt is None):
+            raise ValueError("exactly one of sql or prompt is required")
         params = _run_params(
             sql=sql,
             prompt=prompt,

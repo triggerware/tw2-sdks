@@ -4,6 +4,9 @@ import { TablesService } from "./tables.js"
 import { CursorsService } from "./cursors.js"
 import { ConnectorsService } from "./connectors.js"
 import { AgentsService } from "./agents.js"
+import { ToolsService } from "./tools.js"
+import { LoggingService } from "./logging.js"
+import { McpService } from "./mcp.js"
 import { QueriesService } from "./queries.js"
 import { RuntimesService } from "./runtimes.js"
 import { SystemService } from "./system.js"
@@ -16,6 +19,9 @@ export class TriggerwareClient {
   readonly cursors: CursorsService
   readonly connectors: ConnectorsService
   readonly agents: AgentsService
+  readonly tools: ToolsService
+  readonly logging: LoggingService
+  readonly mcp: McpService
   readonly queries: QueriesService
   readonly runtimes: RuntimesService
   readonly system: SystemService
@@ -30,6 +36,9 @@ export class TriggerwareClient {
     this.cursors = new CursorsService(peer)
     this.connectors = new ConnectorsService(peer)
     this.agents = new AgentsService(peer)
+    this.tools = new ToolsService(peer)
+    this.logging = new LoggingService(peer)
+    this.mcp = new McpService(peer)
     this.queries = new QueriesService(peer)
     this.runtimes = new RuntimesService(peer)
     this.system = new SystemService(peer)

@@ -1,6 +1,6 @@
 import type { Peer } from "tw2-jsonrpc"
 import type { Row, RunOptions } from "./types.js"
-import { definedParams, withRunOptions } from "./utils.js"
+import { definedParams } from "./utils.js"
 
 export interface CursorColumn {
   name: string
@@ -41,24 +41,22 @@ export class CursorsService {
         timeout_ms: options.timeoutMs,
       }),
     )
-    return new Cursor(this.#peer, response, options)
+    return new Cursor(this.#peer, response)
   }
 }
 
 export class Cursor implements AsyncIterable<Row> {
   readonly #peer: Peer
   readonly #cursor: string
-  readonly #options: RunOptions
   readonly #sql: string
   readonly #signature: CursorColumn[]
   #exhausted: boolean
   #cache: Row[]
   #cachePosition = 0
 
-  constructor(peer: Peer, open: CursorOpen, options: RunOptions = {}) {
+  constructor(peer: Peer, open: CursorOpen) {
     this.#peer = peer
     this.#cursor = open.cursor
-    this.#options = options
     this.#sql = open.sql
     this.#signature = open.signature
     this.#exhausted = open.exhausted
@@ -84,7 +82,7 @@ export class Cursor implements AsyncIterable<Row> {
 
     const response = await this.#peer.call<CursorFetch>(
       "cursors.fetch",
-      withRunOptions({ cursor: this.#cursor }, this.#options),
+      { cursor: this.#cursor },
     )
     this.#exhausted = response.exhausted
     this.#cache.push(...response.rows)

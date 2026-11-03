@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-import json
 from typing import Any, Literal, NotRequired, TypedDict
 
 import tw2_jsonrpc as rpc
-import yaml
+
+from ._configuration import Authorization
 
 
 TableRuntime = Literal["lua", "python", "node"]
@@ -21,7 +21,7 @@ class TableGenerator(TypedDict):
 
 
 class TableMetadata(TypedDict):
-    description: NotRequired[str]
+    description: str
     columns: list[TableColumn]
     generators: list[TableGenerator]
     config_schema: NotRequired[dict[str, Any]]
@@ -34,9 +34,10 @@ class TableConnector(TypedDict):
 
 class Table(TypedDict):
     name: str
+    prompt: NotRequired[str]
     meta: TableMetadata
     code: str
-    runtime: NotRequired[TableRuntime]
+    runtime: TableRuntime
     connector: NotRequired[TableConnector]
     configured: bool
 
@@ -47,13 +48,15 @@ class TablesService:
 
     async def create(
         self,
-        name: str,
+        name: str | None = None,
         *,
         prompt: str | None = None,
         code: str | None = None,
-        meta: TableMetadata | str | None = None,
+        meta: TableMetadata | None = None,
         runtime: TableRuntime | None = None,
     ) -> Table:
+        if prompt is None and (name is None or code is None or meta is None):
+            raise ValueError("name, code, and meta are required without a prompt")
         table = await self._peer.call(
             "tables.create",
             self._definition_params(
@@ -64,13 +67,11 @@ class TablesService:
                 runtime=runtime,
             ),
         )
-        table["name"] = name
         return table
 
-    async def get(self, name: str) -> Table:
-        table = await self._peer.call("tables.get", {"name": name})
-        table["name"] = name
-        return table
+    async def get(self, name: str | list[str]) -> Table | list[Table]:
+        response = await self._peer.call("tables.get", {"name": name})
+        return response["tables"] if isinstance(name, list) else response
 
     async def update(
         self,
@@ -78,7 +79,7 @@ class TablesService:
         *,
         prompt: str | None = None,
         code: str | None = None,
-        meta: TableMetadata | str | None = None,
+        meta: TableMetadata | None = None,
         runtime: TableRuntime | None = None,
     ) -> Table:
         table = await self._peer.call(
@@ -91,14 +92,13 @@ class TablesService:
                 runtime=runtime,
             ),
         )
-        table["name"] = name
         return table
 
     async def list(self) -> list[str]:
         response = await self._peer.call("tables.list")
         return response["tables"]
 
-    async def delete(self, name: str) -> None:
+    async def delete(self, name: str | list[str]) -> None:
         await self._peer.call("tables.delete", {"name": name})
 
     async def sync(
@@ -116,56 +116,33 @@ class TablesService:
             {key: value for key, value in params.items() if value is not None},
         )
 
-    async def configure(self, table: str | Table, **config: Any) -> None:
-        if isinstance(table, str):
-            name = table
-            attached_table = None
-        else:
-            name = table["name"]
-            attached_table = table
-
-        await self._peer.call(
+    async def configure(
+        self,
+        name: str,
+        config: dict[str, Any] | None = None,
+        *,
+        secure: bool = False,
+    ) -> Authorization:
+        params = {"name": name, "config": config, "secure": secure}
+        return await self._peer.call(
             "tables.configure",
-            {
-                "name": name,
-                "config": config,
-            },
+            {key: value for key, value in params.items() if value is not None},
         )
-
-        if attached_table is not None:
-            attached_table["configured"] = True
 
     def _definition_params(
         self,
         *,
-        name: str,
+        name: str | None,
         prompt: str | None,
         code: str | None,
-        meta: TableMetadata | str | None,
+        meta: TableMetadata | None,
         runtime: TableRuntime | None,
     ) -> dict[str, Any]:
-        params: dict[str, Any] = {"name": name}
-
-        if prompt is not None:
-            params["prompt"] = prompt
-        else:
-            if code is None or meta is None:
-                raise ValueError("either prompt or both code and meta must be supplied")
-            params["code"] = code
-            params["meta"] = table_metadata_from_string(meta) if isinstance(meta, str) else meta
-
-        if runtime is not None:
-            params["runtime"] = runtime
-
-        return params
-
-
-def table_metadata_from_string(contents: str) -> TableMetadata:
-    try:
-        parsed = yaml.safe_load(contents)
-    except yaml.YAMLError:
-        parsed = json.loads(contents)
-
-    if not isinstance(parsed, dict):
-        raise ValueError("table metadata must be an object")
-    return parsed  # type: ignore[return-value]
+        params = {
+            "name": name,
+            "prompt": prompt,
+            "code": code,
+            "meta": meta,
+            "runtime": runtime,
+        }
+        return {key: value for key, value in params.items() if value is not None}

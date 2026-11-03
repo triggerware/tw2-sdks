@@ -10,12 +10,24 @@ class QuerySignature(TypedDict):
     type: str
 
 
+class QueryParameter(TypedDict):
+    name: str
+    type: str
+
+
+class QueryParameterValue(TypedDict):
+    name: str
+    value: Any
+
+
 class QueryDefinition(TypedDict):
     name: str
+    description: str
     sql: NotRequired[str]
     prompt: NotRequired[str]
     batch_size: NotRequired[int]
     timeout_ms: NotRequired[int]
+    params: NotRequired[list[QueryParameter]]
     signature: list[QuerySignature]
 
 
@@ -27,15 +39,7 @@ class QueryFetch(TypedDict):
 class Query:
     def __init__(self, peer: rpc.Peer, definition: QueryDefinition):
         self._peer = peer
-        self.name = definition["name"]
-        self.sql = definition.get("sql")
-        self.prompt = definition.get("prompt")
-        self.batch_size = definition.get("batch_size")
-        self.timeout_ms = definition.get("timeout_ms")
-        self.signature = definition["signature"]
-        self.exhausted = False
-        self._cache: list[list[Any]] = []
-        self._cache_position = 0
+        self._replace(definition)
 
     async def reset(self) -> None:
         definition: QueryDefinition = await self._peer.call(
@@ -44,16 +48,22 @@ class Query:
         )
         self._replace(definition)
 
-    async def delete(self) -> None:
-        await self._peer.call("queries.delete", {"name": self.name})
-
-    async def fetch(self) -> list[list[Any]]:
+    async def fetch(
+        self,
+        *,
+        params: list[QueryParameterValue] | None = None,
+        rows: int | None = None,
+    ) -> list[list[Any]]:
         if self.exhausted:
             return []
 
+        if params is not None:
+            self._fetch_params = params
+        if rows is not None:
+            self._fetch_rows = rows
         response: QueryFetch = await self._peer.call(
             "queries.fetch",
-            {"name": self.name},
+            _query_params(name=self.name, params=self._fetch_params, rows=self._fetch_rows),
         )
         self.exhausted = response["exhausted"]
         self._cache.extend(response["rows"])
@@ -82,14 +92,18 @@ class Query:
 
     def _replace(self, definition: QueryDefinition) -> None:
         self.name = definition["name"]
+        self.description = definition["description"]
         self.sql = definition.get("sql")
         self.prompt = definition.get("prompt")
         self.batch_size = definition.get("batch_size")
         self.timeout_ms = definition.get("timeout_ms")
+        self.params = definition.get("params")
         self.signature = definition["signature"]
         self.exhausted = False
-        self._cache = []
+        self._cache: list[list[Any]] = []
         self._cache_position = 0
+        self._fetch_params: list[QueryParameterValue] | None = None
+        self._fetch_rows: int | None = None
 
 
 class QueriesService:
@@ -98,29 +112,40 @@ class QueriesService:
 
     async def create(
         self,
-        name: str,
+        name: str | None = None,
         *,
+        description: str | None = None,
         sql: str | None = None,
         prompt: str | None = None,
+        params: list[QueryParameter] | None = None,
         batch_size: int | None = None,
         timeout_ms: int | None = None,
     ) -> Query:
-        params = _query_params(
+        if prompt is None and (name is None or description is None or sql is None):
+            raise ValueError("name, description, and sql are required without a prompt")
+        definition_params = _query_params(
             name=name,
+            description=description,
             sql=sql,
             prompt=prompt,
+            params=params,
             batch_size=batch_size,
             timeout_ms=timeout_ms,
         )
-        definition: QueryDefinition = await self._peer.call("queries.create", params)
+        definition: QueryDefinition = await self._peer.call("queries.create", definition_params)
         return Query(self._peer, definition)
 
-    async def get(self, name: str) -> Query:
-        definition: QueryDefinition = await self._peer.call(
+    async def get(self, name: str | list[str]) -> Query | list[Query]:
+        response = await self._peer.call(
             "queries.get",
             {"name": name},
         )
-        return Query(self._peer, definition)
+        if isinstance(name, list):
+            return [Query(self._peer, definition) for definition in response["queries"]]
+        return Query(self._peer, response)
+
+    async def delete(self, name: str | list[str]) -> None:
+        await self._peer.call("queries.delete", {"name": name})
 
     async def list(self) -> list[str]:
         response = await self._peer.call("queries.list")

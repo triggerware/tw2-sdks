@@ -12,16 +12,35 @@ export interface TriggerDelta {
   deleted: Row[]
 }
 
-export interface TriggerOptions extends RunOptions {
+export interface TriggerUpdate extends RunOptions {
+  description?: string
+  prompt?: string
+  sql?: string
   schedule?: string
   reportNoops?: boolean
   enabled?: boolean
 }
 
-interface TriggerDefinition {
+export type TriggerCreation =
+  | (TriggerUpdate & { name?: string; prompt: string })
+  | (TriggerUpdate & { name: string; description: string; sql: string; schedule: string })
+
+export interface Trigger extends RunOptions {
   name: string
+  description: string
   prompt?: string
-  sql?: string
+  sql: string
+  schedule?: string
+  reportNoops: boolean
+  enabled: boolean
+  signature: TriggerSignature[]
+}
+
+interface TriggerWire {
+  name: string
+  description: string
+  prompt?: string
+  sql: string
   schedule?: string
   batch_size?: number
   timeout_ms?: number
@@ -29,32 +48,6 @@ interface TriggerDefinition {
   enabled: boolean
   signature: TriggerSignature[]
 }
-
-interface TriggerList {
-  triggers: string[]
-}
-
-interface TriggerPoll {
-  deltas: TriggerDelta[]
-}
-
-interface TriggerWatch {
-  resume_token: string
-}
-
-export type TriggerCreation =
-  | ({ sql: string; prompt?: never } & TriggerOptions)
-  | ({ prompt: string; sql?: never } & TriggerOptions)
-
-export type TriggerUpdate = Partial<{
-  sql: string
-  prompt: string
-  schedule: string
-  batchSize: number
-  timeoutMs: number
-  reportNoops: boolean
-  enabled: boolean
-}>
 
 export type TriggerCallback = (
   added: Row[],
@@ -68,185 +61,101 @@ export class TriggersService {
     this.#peer = peer
   }
 
-  async create(name: string, creation: TriggerCreation): Promise<Trigger> {
-    const definition = await this.#peer.call<TriggerDefinition>(
+  async create(creation: TriggerCreation): Promise<Trigger> {
+    return triggerFromWire(await this.#peer.call<TriggerWire>(
       "triggers.create",
-      triggerParams({ name, ...creation }),
-    )
-    return new Trigger(this.#peer, definition)
+      triggerParams(creation.name, creation),
+    ))
   }
 
-  async get(name: string): Promise<Trigger> {
-    const definition = await this.#peer.call<TriggerDefinition>("triggers.get", { name })
-    return new Trigger(this.#peer, definition)
+  async get(name: string | string[]): Promise<Trigger | Trigger[]> {
+    if (typeof name === "string") {
+      return triggerFromWire(await this.#peer.call<TriggerWire>("triggers.get", { name }))
+    }
+    const response = await this.#peer.call<{ triggers: TriggerWire[] }>("triggers.get", { name })
+    return response.triggers.map(triggerFromWire)
+  }
+
+  async update(name: string, update: TriggerUpdate): Promise<Trigger> {
+    return triggerFromWire(await this.#peer.call<TriggerWire>(
+      "triggers.update",
+      triggerParams(name, update),
+    ))
   }
 
   async list(): Promise<string[]> {
-    const response = await this.#peer.call<TriggerList>("triggers.list")
+    const response = await this.#peer.call<{ triggers: string[] }>("triggers.list")
     return response.triggers
   }
-}
 
-export class Trigger {
-  readonly #peer: Peer
-  #name!: string
-  #prompt?: string
-  #sql?: string
-  #signature!: TriggerSignature[]
-  #options!: Required<Pick<TriggerOptions, "reportNoops" | "enabled">> & TriggerOptions
-  #resumeToken?: string
-
-  constructor(peer: Peer, definition: TriggerDefinition) {
-    this.#peer = peer
-    this.#replace(definition)
+  delete(name: string | string[]): Promise<void> {
+    return this.#peer.call<void>("triggers.delete", { name })
   }
 
-  get name(): string {
-    return this.#name
+  enable(name: string): Promise<void> {
+    return this.#peer.call<void>("triggers.enable", { name })
   }
 
-  get prompt(): string | undefined {
-    return this.#prompt
+  disable(name: string): Promise<void> {
+    return this.#peer.call<void>("triggers.disable", { name })
   }
 
-  get sql(): string | undefined {
-    return this.#sql
+  run(name: string, options: RunOptions = {}): Promise<TriggerDelta> {
+    return this.#peer.call<TriggerDelta>("triggers.run", withRunOptions({ name }, options))
   }
 
-  get signature(): readonly TriggerSignature[] {
-    return this.#signature
-  }
-
-  get options(): TriggerOptions {
-    return { ...this.#options }
-  }
-
-  get enabled(): boolean {
-    return this.#options.enabled
-  }
-
-  get watched(): boolean {
-    return this.#resumeToken !== undefined
-  }
-
-  async update(update: TriggerUpdate = {}): Promise<void> {
-    const resumeToken = this.#resumeToken
-    const definition = await this.#peer.call<TriggerDefinition>(
-      "triggers.update",
-      triggerParams({ name: this.#name, ...update }),
-    )
-    this.#replace(definition)
-    this.#resumeToken = resumeToken
-  }
-
-  delete(): Promise<void> {
-    return this.#peer.call<void>("triggers.delete", { name: this.#name })
-  }
-
-  async enable(): Promise<void> {
-    await this.#peer.call<void>("triggers.enable", { name: this.#name })
-    this.#options.enabled = true
-  }
-
-  async disable(): Promise<void> {
-    await this.#peer.call<void>("triggers.disable", { name: this.#name })
-    this.#options.enabled = false
-  }
-
-  run(options: RunOptions = {}): Promise<TriggerDelta> {
-    return this.#peer.call<TriggerDelta>(
-      "triggers.run",
-      withRunOptions({ name: this.#name }, options),
-    )
-  }
-
-  async poll(): Promise<TriggerDelta[]> {
-    const response = await this.#peer.call<TriggerPoll>("triggers.poll", {
-      name: this.#name,
-    })
+  async poll(name: string): Promise<TriggerDelta[]> {
+    const response = await this.#peer.call<{ deltas: TriggerDelta[] }>("triggers.poll", { name })
     return response.deltas
   }
 
   async watch(
+    name: string,
     callback: TriggerCallback,
     options: { resumeWindowMs?: number } = {},
   ): Promise<string> {
-    if (this.#resumeToken !== undefined) {
-      throw new Error("trigger is already watching")
-    }
-
-    this.#registerWatcher(callback)
-    const response = await this.#peer.call<TriggerWatch>(
+    this.#registerWatcher(name, callback)
+    const response = await this.#peer.call<{ resume_token: string }>(
       "triggers.watch",
-      definedParams({
-        name: this.#name,
-        resume_window_ms: options.resumeWindowMs,
-      }),
+      definedParams({ name, resume_window_ms: options.resumeWindowMs }),
     )
-    this.#resumeToken = response.resume_token
     return response.resume_token
   }
 
   async resume(
+    name: string,
     resumeToken: string,
     callback: TriggerCallback,
     options: { resumeWindowMs?: number } = {},
   ): Promise<string> {
-    if (this.#resumeToken !== undefined) {
-      throw new Error("trigger is already watching")
-    }
-
-    this.#registerWatcher(callback)
-    const response = await this.#peer.call<TriggerWatch>(
+    this.#registerWatcher(name, callback)
+    const response = await this.#peer.call<{ resume_token: string }>(
       "triggers.resume",
-      definedParams({
-        name: this.#name,
-        resume_token: resumeToken,
-        resume_window_ms: options.resumeWindowMs,
-      }),
+      definedParams({ name, resume_token: resumeToken, resume_window_ms: options.resumeWindowMs }),
     )
-    this.#resumeToken = response.resume_token
     return response.resume_token
   }
 
-  async unwatch(): Promise<void> {
-    if (this.#resumeToken === undefined) {
-      return
-    }
-
-    await this.#peer.call<void>("triggers.unwatch", {
-      resume_token: this.#resumeToken,
-    })
-    this.#resumeToken = undefined
+  unwatch(options: { name?: string; resumeToken?: string }): Promise<void> {
+    return this.#peer.call<void>("triggers.unwatch", definedParams({
+      name: options.name,
+      resume_token: options.resumeToken,
+    }))
   }
 
-  #registerWatcher(callback: TriggerCallback): void {
-    this.#peer.addMethod(this.#name, async params => {
-      const deltas = params.deltas as TriggerDelta[]
-      for (const delta of deltas) {
+  #registerWatcher(name: string, callback: TriggerCallback): void {
+    this.#peer.addMethod(name, async params => {
+      for (const delta of params.deltas as TriggerDelta[]) {
         await callback(delta.added, delta.deleted)
       }
     })
   }
-
-  #replace(definition: TriggerDefinition): void {
-    this.#name = definition.name
-    this.#prompt = definition.prompt
-    this.#sql = definition.sql
-    this.#signature = definition.signature
-    this.#options = {
-      schedule: definition.schedule,
-      batchSize: definition.batch_size,
-      timeoutMs: definition.timeout_ms,
-      reportNoops: definition.report_noops,
-      enabled: definition.enabled,
-    }
-  }
 }
 
-function triggerParams(values: TriggerUpdate & { name: string }): Record<string, unknown> {
+function triggerParams(name: string | undefined, values: TriggerUpdate): Record<string, unknown> {
   return definedParams({
-    name: values.name,
+    name,
+    description: values.description,
     sql: values.sql,
     prompt: values.prompt,
     schedule: values.schedule,
@@ -255,4 +164,19 @@ function triggerParams(values: TriggerUpdate & { name: string }): Record<string,
     report_noops: values.reportNoops,
     enabled: values.enabled,
   })
+}
+
+function triggerFromWire(trigger: TriggerWire): Trigger {
+  return {
+    name: trigger.name,
+    description: trigger.description,
+    prompt: trigger.prompt,
+    sql: trigger.sql,
+    schedule: trigger.schedule,
+    batchSize: trigger.batch_size,
+    timeoutMs: trigger.timeout_ms,
+    reportNoops: trigger.report_noops,
+    enabled: trigger.enabled,
+    signature: trigger.signature,
+  }
 }

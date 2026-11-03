@@ -1,6 +1,6 @@
 import type { Peer } from "tw2-jsonrpc"
 import type { Row, RunOptions } from "./types.js"
-import { definedParams, withRunOptions } from "./utils.js"
+import { definedParams } from "./utils.js"
 
 export interface QuerySignature {
   name: string
@@ -9,6 +9,8 @@ export interface QuerySignature {
 
 interface QueryDefinition {
   name: string
+  description: string
+  params?: QuerySignature[]
   sql?: string
   prompt?: string
   batch_size?: number
@@ -25,9 +27,24 @@ interface QueryFetch {
   exhausted: boolean
 }
 
+export interface QueryOptions extends RunOptions {
+  description?: string
+  params?: QuerySignature[]
+}
+
 export type QueryCreation =
-  | ({ sql: string; prompt?: never } & RunOptions)
-  | ({ prompt: string; sql?: never } & RunOptions)
+  | (QueryOptions & { name: string; sql: string; description: string; prompt?: never })
+  | (QueryOptions & { name?: string; prompt: string; sql?: string })
+
+export interface QueryParameterValue {
+  name: string
+  value: unknown
+}
+
+export interface QueryFetchOptions {
+  params?: QueryParameterValue[]
+  rows?: number
+}
 
 export class QueriesService {
   readonly #peer: Peer
@@ -36,28 +53,39 @@ export class QueriesService {
     this.#peer = peer
   }
 
-  async create(name: string, creation: QueryCreation): Promise<Query> {
+  async create(creation: QueryCreation): Promise<Query> {
     const definition = await this.#peer.call<QueryDefinition>(
       "queries.create",
-      queryParams(name, creation),
+      queryParams(creation),
     )
     return new Query(this.#peer, definition)
   }
 
-  async get(name: string): Promise<Query> {
-    const definition = await this.#peer.call<QueryDefinition>("queries.get", { name })
-    return new Query(this.#peer, definition)
+  async get(name: string | string[]): Promise<Query | Query[]> {
+    if (typeof name === "string") {
+      const definition = await this.#peer.call<QueryDefinition>("queries.get", { name })
+      return new Query(this.#peer, definition)
+    }
+    const response = await this.#peer.call<{ queries: QueryDefinition[] }>("queries.get", { name })
+    return response.queries.map(definition => new Query(this.#peer, definition))
   }
 
   async list(): Promise<string[]> {
     const response = await this.#peer.call<QueryList>("queries.list")
     return response.queries
   }
+
+  delete(name: string | string[]): Promise<void> {
+    return this.#peer.call<void>("queries.delete", { name })
+  }
 }
 
 export class Query implements AsyncIterable<Row> {
   readonly #peer: Peer
   #name!: string
+  #description!: string
+  #params?: QuerySignature[]
+  #fetchOptions: QueryFetchOptions = {}
   #sql?: string
   #prompt?: string
   #batchSize?: number
@@ -74,6 +102,14 @@ export class Query implements AsyncIterable<Row> {
 
   get name(): string {
     return this.#name
+  }
+
+  get description(): string {
+    return this.#description
+  }
+
+  get params(): readonly QuerySignature[] | undefined {
+    return this.#params
   }
 
   get sql(): string | undefined {
@@ -101,34 +137,29 @@ export class Query implements AsyncIterable<Row> {
   }
 
   async reset(): Promise<void> {
+    // The resource documentation's prose specifies the current query definition.
     const definition = await this.#peer.call<QueryDefinition>("queries.reset", {
       name: this.#name,
     })
     this.#replace(definition)
   }
 
-  delete(): Promise<void> {
-    return this.#peer.call<void>("queries.delete", { name: this.#name })
-  }
-
-  async fetch(): Promise<Row[]> {
+  async fetch(options: QueryFetchOptions = this.#fetchOptions): Promise<Row[]> {
     if (this.#exhausted) {
       return []
     }
 
     const response = await this.#peer.call<QueryFetch>(
       "queries.fetch",
-      withRunOptions(
-        { name: this.#name },
-        { batchSize: this.#batchSize, timeoutMs: this.#timeoutMs },
-      ),
+      definedParams({ name: this.#name, params: options.params, rows: options.rows }),
     )
+    this.#fetchOptions = { ...options }
     this.#exhausted = response.exhausted
     this.#cache.push(...response.rows)
     return response.rows
   }
 
-  async next(): Promise<Row | null> {
+  async next(options: QueryFetchOptions = this.#fetchOptions): Promise<Row | null> {
     if (this.#cachePosition < this.#cache.length) {
       return this.#cache[this.#cachePosition++]!
     }
@@ -137,7 +168,7 @@ export class Query implements AsyncIterable<Row> {
       return null
     }
 
-    await this.fetch()
+    await this.fetch(options)
 
     if (this.#cachePosition < this.#cache.length) {
       return this.#cache[this.#cachePosition++]!
@@ -158,6 +189,8 @@ export class Query implements AsyncIterable<Row> {
 
   #replace(definition: QueryDefinition): void {
     this.#name = definition.name
+    this.#description = definition.description
+    this.#params = definition.params
     this.#sql = definition.sql
     this.#prompt = definition.prompt
     this.#batchSize = definition.batch_size
@@ -169,9 +202,13 @@ export class Query implements AsyncIterable<Row> {
   }
 }
 
-function queryParams(name: string, values: QueryCreation): Record<string, unknown> {
+function queryParams(
+  values: QueryOptions & { name?: string; sql?: string; prompt?: string },
+): Record<string, unknown> {
   return definedParams({
-    name,
+    name: values.name,
+    description: values.description,
+    params: values.params,
     sql: values.sql,
     prompt: values.prompt,
     batch_size: values.batchSize,

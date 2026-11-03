@@ -1,8 +1,8 @@
 import type { Peer } from "tw2-jsonrpc"
-import type { JsonObject, Runtime } from "./types.js"
+import type { AuthorizationResult, JsonObject } from "./types.js"
 import { definedParams } from "./utils.js"
 
-export type ConnectorRuntime = Runtime
+export type ConnectorRuntime = "python" | "node"
 
 export interface Connector {
   readonly name: string
@@ -16,6 +16,7 @@ export interface Connector {
 export interface ConnectorDescription {
   description: string
   configSchema: JsonObject
+  oauthProvider?: string
   runtime?: ConnectorRuntime
   dependencies?: string[]
   tables: string[]
@@ -26,6 +27,7 @@ export interface ConnectorDescription {
 interface ConnectorDescriptionWire {
   description: string
   config_schema: JsonObject
+  oauth_provider?: string
   runtime?: ConnectorRuntime
   dependencies?: string[]
   tables: string[]
@@ -38,6 +40,12 @@ export interface ConnectorInstall {
   url?: string
   tag?: string
   config?: JsonObject
+  secure?: boolean
+}
+
+export interface ConnectorCatalogEntry {
+  name: string
+  description: string
 }
 
 export interface ConnectorReference {
@@ -63,26 +71,31 @@ export class ConnectorsService {
     this.#peer = peer
   }
 
-  install(install: ConnectorInstall): Promise<void> {
-    return this.#peer.call<void>(
+  install(install: ConnectorInstall): Promise<AuthorizationResult> {
+    return this.#peer.call<AuthorizationResult>(
       "connectors.install",
-      connectorParams({ ...install, config: install.config ?? {} }),
+      connectorParams(install),
     )
   }
 
-  async get(name: string, options: { tag?: string } = {}): Promise<Connector> {
+  async get(
+    name: string | string[],
+    options: { tag?: string } = {},
+  ): Promise<Connector | Connector[]> {
+    if (Array.isArray(name)) {
+      const response = await this.#peer.call<{ connectors: ConnectorWire[] }>(
+        "connectors.get",
+        definedParams({ name, tag: options.tag }),
+      )
+      return response.connectors.map((connector, index) =>
+        connectorFromWire(name[index]!, options.tag, connector),
+      )
+    }
     const response = await this.#peer.call<ConnectorWire>(
       "connectors.get",
       connectorParams({ name, tag: options.tag }),
     )
-    return {
-      name,
-      tag: options.tag,
-      config: response.config,
-      tables: response.tables,
-      tools: response.tools,
-      agents: response.agents,
-    }
+    return connectorFromWire(name, options.tag, response)
   }
 
   async list(): Promise<string[]> {
@@ -90,15 +103,26 @@ export class ConnectorsService {
     return response.connectors
   }
 
-  configure(name: string, config: JsonObject, options: { tag?: string } = {}): Promise<void> {
-    return this.#peer.call<void>(
+  configure(
+    name: string,
+    options: { config?: JsonObject; tag?: string; secure?: boolean } = {},
+  ): Promise<AuthorizationResult> {
+    return this.#peer.call<AuthorizationResult>(
       "connectors.configure",
-      connectorParams({ name, tag: options.tag, config }),
+      connectorParams({ name, ...options }),
     )
   }
 
-  async catalog(): Promise<string[]> {
-    const response = await this.#peer.call<ConnectorList>("connectors.catalog")
+  async authorize(name: string, options: { tag?: string } = {}): Promise<string> {
+    const response = await this.#peer.call<{ url: string }>(
+      "connectors.authorize",
+      connectorParams({ name, tag: options.tag }),
+    )
+    return response.url
+  }
+
+  async catalog(): Promise<ConnectorCatalogEntry[]> {
+    const response = await this.#peer.call<{ connectors: ConnectorCatalogEntry[] }>("connectors.catalog")
     return response.connectors
   }
 
@@ -110,6 +134,7 @@ export class ConnectorsService {
     return {
       description: response.description,
       configSchema: response.config_schema,
+      oauthProvider: response.oauth_provider,
       runtime: response.runtime,
       dependencies: response.dependencies,
       tables: response.tables,
@@ -118,14 +143,25 @@ export class ConnectorsService {
     }
   }
 
-  uninstall(name: string, options: { tag?: string } = {}): Promise<void> {
+  uninstall(name: string | string[], options: { tag?: string } = {}): Promise<void> {
     return this.#peer.call<void>(
       "connectors.uninstall",
-      connectorParams({ name, tag: options.tag }),
+      definedParams({ name, tag: options.tag }),
     )
   }
 }
 
 function connectorParams(values: ConnectorInstall | ConnectorReference): JsonObject {
   return definedParams(values as JsonObject)
+}
+
+function connectorFromWire(name: string, tag: string | undefined, response: ConnectorWire): Connector {
+  return {
+    name,
+    tag,
+    config: response.config,
+    tables: response.tables,
+    tools: response.tools,
+    agents: response.agents,
+  }
 }

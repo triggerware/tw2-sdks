@@ -1,13 +1,34 @@
 use std::sync::Arc;
 
-use tw2_jsonrpc::{DynamicParams, prelude::*};
 use serde::{Deserialize, Serialize};
+use tw2_jsonrpc::prelude::*;
 
-use crate::prelude::RunOptions;
+use crate::RunOptions;
 
-pub enum QueryCreation {
-    Sql(String),
-    Prompt(String),
+/// Name, description, and SQL are required unless prompt is supplied.
+#[derive(Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct QueryWrite {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub sql: Option<String>,
+    pub prompt: Option<String>,
+    pub params: Option<Vec<QuerySignature>>,
+    #[serde(flatten)]
+    pub run: RunOptions,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryParameterValue {
+    pub name: String,
+    pub value: Value,
+}
+
+#[derive(Clone, Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct QueryFetchOptions {
+    pub params: Option<Vec<QueryParameterValue>>,
+    pub rows: Option<usize>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -22,11 +43,15 @@ pub struct Query {
     #[serde(skip)]
     peer: Option<Arc<Peer>>,
     name: String,
+    description: String,
     sql: Option<String>,
     prompt: Option<String>,
-    batch_size: Option<u32>,
-    timeout_ms: Option<u32>,
+    batch_size: Option<usize>,
+    timeout_ms: Option<u64>,
+    params: Option<Vec<QuerySignature>>,
     signature: Vec<QuerySignature>,
+    #[serde(skip)]
+    fetch_options: QueryFetchOptions,
     #[serde(skip)]
     cache: Vec<Vec<Value>>,
     #[serde(skip)]
@@ -40,34 +65,35 @@ pub struct QueriesService {
 }
 
 impl QueriesService {
-    pub fn new(peer: Arc<Peer>) -> QueriesService {
-        QueriesService { peer }
+    pub fn new(peer: Arc<Peer>) -> Self {
+        Self { peer }
     }
 
-    pub async fn create(
-        &self,
-        name: impl Into<String>,
-        create: QueryCreation,
-        config: RunOptions,
-    ) -> Result<Query> {
-        let name = name.into();
-        let params = create.with_params(params!({"name": name.clone()}))?;
-
-        let mut query: Query = self
-            .peer
-            .call("queries.create", config.with_params(params)?)
-            .await?;
+    pub async fn create(&self, options: QueryWrite) -> Result<Query> {
+        if options.prompt.is_none()
+            && (options.name.is_none() || options.description.is_none() || options.sql.is_none())
+        {
+            return Err(JsonRpcError::invalid_params());
+        }
+        let mut query: Query = self.peer.call("queries.create", options).await?;
         query.peer = Some(self.peer.clone());
         Ok(query)
     }
 
-    pub async fn get(&self, name: impl Into<String>) -> Result<Query> {
-        let mut query: Query = self
-            .peer
-            .call("queries.get", params!({"name": name.into()}))
-            .await?;
-        query.peer = Some(self.peer.clone());
-        Ok(query)
+    pub async fn get(&self, names: Vec<String>) -> Result<Vec<Query>> {
+        #[derive(Deserialize)]
+        struct QueryList {
+            queries: Vec<Query>,
+        }
+        let mut response: QueryList = self.peer.call("queries.get", params!({"name": names})).await?;
+        for query in &mut response.queries {
+            query.peer = Some(self.peer.clone());
+        }
+        Ok(response.queries)
+    }
+
+    pub async fn delete(&self, names: Vec<String>) -> Result<()> {
+        self.peer.call("queries.delete", params!({"name": names})).await
     }
 
     pub async fn list(&self) -> Result<Vec<String>> {
@@ -84,16 +110,22 @@ impl Query {
     pub fn name(&self) -> &str {
         &self.name
     }
+    pub fn description(&self) -> &str {
+        &self.description
+    }
+    pub fn params(&self) -> Option<&[QuerySignature]> {
+        self.params.as_deref()
+    }
     pub fn sql(&self) -> Option<&str> {
         self.sql.as_deref()
     }
     pub fn prompt(&self) -> Option<&str> {
         self.prompt.as_deref()
     }
-    pub fn batch_size(&self) -> Option<u32> {
+    pub fn batch_size(&self) -> Option<usize> {
         self.batch_size
     }
-    pub fn timeout_ms(&self) -> Option<u32> {
+    pub fn timeout_ms(&self) -> Option<u64> {
         self.timeout_ms
     }
     pub fn signature(&self) -> &[QuerySignature] {
@@ -102,36 +134,19 @@ impl Query {
     pub fn is_exhausted(&self) -> bool {
         self.exhausted
     }
+
+    /// The resource documentation's prose specifies the current query definition.
     pub async fn reset(&mut self) -> Result<()> {
         let peer = self.peer()?;
-
-        let mut query: Query = peer
-            .call("queries.reset", params!({"name": self.name.clone()}))
-            .await?;
+        let mut query: Query = peer.call("queries.reset", params!({"name": self.name.clone()})).await?;
         query.peer = Some(peer);
+        query.fetch_options = self.fetch_options.clone();
         *self = query;
-
         Ok(())
     }
 
-    pub async fn delete(self) -> Result<()> {
-        self.peer()?
-            .call("queries.delete", params!({"name": self.name}))
-            .await
-    }
-
-    pub async fn fetch(&mut self) -> Result<Vec<Vec<Value>>> {
-        self.fetch_with_rows(None).await
-    }
-
-    pub async fn fetch_rows(&mut self, rows: usize) -> Result<Vec<Vec<Value>>> {
-        if rows == 0 {
-            return Ok(vec![]);
-        }
-        self.fetch_with_rows(Some(rows)).await
-    }
-
-    async fn fetch_with_rows(&mut self, rows: Option<usize>) -> Result<Vec<Vec<Value>>> {
+    /// Subsequent next() calls reuse these parameters and row limit.
+    pub async fn fetch(&mut self, options: QueryFetchOptions) -> Result<Vec<Vec<Value>>> {
         #[derive(Deserialize)]
         struct QueryFetch {
             rows: Vec<Vec<Value>>,
@@ -142,48 +157,30 @@ impl Query {
             return Ok(vec![]);
         }
 
-        let mut params = params!({"name": self.name.clone()});
-        if let Some(rows) = rows {
-            params = params.with("rows", rows)?;
-        }
-        let fetch: QueryFetch = self.peer()?.call("queries.fetch", params).await?;
-        self.exhausted = fetch.exhausted;
-        self.cache.extend(fetch.rows.clone());
-        Ok(fetch.rows)
+        let params = params!({"name": self.name.clone()}).extend(options.clone())?;
+        let response: QueryFetch = self.peer()?.call("queries.fetch", params).await?;
+        self.fetch_options = options;
+        self.exhausted = response.exhausted;
+        self.cache.extend(response.rows.clone());
+        Ok(response.rows)
     }
 
     pub async fn next(&mut self) -> Result<Option<Vec<Value>>> {
-        if let Some(row) = self.cache.get(self.cache_position).cloned() {
-            self.cache_position += 1;
-            return Ok(Some(row));
+        loop {
+            if let Some(row) = self.cache.get(self.cache_position).cloned() {
+                self.cache_position += 1;
+                return Ok(Some(row));
+            }
+            if self.exhausted {
+                return Ok(None);
+            }
+            self.fetch(self.fetch_options.clone()).await?;
         }
-
-        if self.exhausted {
-            return Ok(None);
-        }
-
-        self.fetch().await?;
-
-        if let Some(row) = self.cache.get(self.cache_position).cloned() {
-            self.cache_position += 1;
-            return Ok(Some(row));
-        }
-
-        Ok(None)
     }
 
     fn peer(&self) -> Result<Arc<Peer>> {
         self.peer
             .clone()
             .ok_or_else(|| JsonRpcError::internal_error("query is not attached to a peer"))
-    }
-}
-
-impl QueryCreation {
-    fn with_params(self, params: DynamicParams) -> Result<DynamicParams> {
-        match self {
-            QueryCreation::Sql(sql) => params.with("sql", sql),
-            QueryCreation::Prompt(prompt) => params.with("prompt", prompt),
-        }
     }
 }

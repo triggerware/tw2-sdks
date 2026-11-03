@@ -10,38 +10,47 @@ mod connectors;
 mod logging;
 mod agents;
 mod tools;
-pub use agents::AgentWrite;
-pub use tools::ToolWrite;
+mod mcp;
+pub use agents::{Agent, AgentMetadata, AgentWrite};
+pub use tools::{Tool, ToolMetadata, ToolParameter, ToolWrite};
 mod queries;
 mod runtimes;
 mod system;
 mod triggers;
 
-pub use configuration::TriggerwareConfiguration;
-pub use types::Runtime;
+pub use configuration::{Configuration, ConfigurationResult, ConfigurationUpdate};
+pub use types::{AuthorizationResult, ResourceConfiguration, Runtime};
 pub use tables::{
-    Table, TableColumn, TableCreation, TableConnector, TableGenerator,
-    TableMetadata, TablesSyncOptions,
+    Table, TableColumn, TableConnector, TableGenerator,
+    TableMetadata, TablesSyncOptions, TableWrite,
 };
-pub use cursors::{Cursor, CursorColumn, CursorCreation, RunOptions};
+pub use cursors::{Cursor, CursorColumn, CursorOpenOptions, RunOptions};
 pub use connectors::{
-    Connector, ConnectorAuthorization, ConnectorCatalogEntry, ConnectorDescription,
+    Connector, ConnectorCatalogEntry, ConnectorConfiguration, ConnectorDescription,
     ConnectorInstall, ConnectorReference,
 };
-pub use queries::{Query, QueryCreation, QuerySignature};
+pub use queries::{
+    Query, QueryFetchOptions, QueryParameterValue, QuerySignature, QueryWrite,
+};
+pub use logging::LogLevel;
+pub use runtimes::ExternalRuntime;
 pub use system::{Health, SystemUpdate};
-pub use triggers::{Trigger, TriggerCreation, TriggerDelta, TriggerOptions, TriggerSignature};
+pub use triggers::{
+    Trigger, TriggerDelta, TriggerSignature, TriggerWrite,
+};
 
 pub mod prelude {
     pub use tw2_jsonrpc::prelude::{Result, Value};
 
-    pub use crate::configuration::TriggerwareConfiguration;
-    pub use crate::tables::{TableCreation, TablesSyncOptions};
-    pub use crate::Runtime;
-    pub use crate::cursors::{CursorCreation, RunOptions};
-    pub use crate::connectors::{ConnectorInstall, ConnectorReference};
-    pub use crate::queries::QueryCreation;
-    pub use crate::triggers::{TriggerCreation, TriggerOptions};
+    pub use crate::configuration::{ConfigurationResult, ConfigurationUpdate};
+    pub use crate::agents::{AgentMetadata, AgentWrite};
+    pub use crate::tools::{ToolMetadata, ToolParameter, ToolWrite};
+    pub use crate::tables::{TablesSyncOptions, TableWrite};
+    pub use crate::{ExternalRuntime, LogLevel, ResourceConfiguration, Runtime};
+    pub use crate::cursors::{CursorOpenOptions, RunOptions};
+    pub use crate::connectors::{ConnectorConfiguration, ConnectorInstall, ConnectorReference};
+    pub use crate::queries::{QueryFetchOptions, QueryParameterValue, QueryWrite};
+    pub use crate::triggers::TriggerWrite;
     pub use crate::TriggerwareClient;
 }
 
@@ -53,6 +62,7 @@ pub struct TriggerwareClient {
     pub logging: logging::LoggingService,
     pub agents: agents::AgentsService,
     pub tools: tools::ToolsService,
+    pub mcp: mcp::McpService,
     pub queries: queries::QueriesService,
     pub runtimes: runtimes::RuntimesService,
     pub system: system::SystemService,
@@ -85,6 +95,7 @@ impl TriggerwareClient {
             logging: logging::LoggingService::new(peer.clone()),
             agents: agents::AgentsService::new(peer.clone()),
             tools: tools::ToolsService::new(peer.clone()),
+            mcp: mcp::McpService::new(peer.clone()),
             queries: queries::QueriesService::new(peer.clone()),
             runtimes: runtimes::RuntimesService::new(peer.clone()),
             system: system::SystemService::new(peer.clone()),

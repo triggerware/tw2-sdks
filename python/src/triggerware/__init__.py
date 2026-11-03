@@ -1,37 +1,64 @@
 from ._client import TriggerwareClient
-from ._configuration import Configuration
+from ._configuration import Authorization, Configuration
+from ._agents import Agent, AgentMetadata
 from ._tables import (
+    Table,
     TableColumn,
     TableGenerator,
     TableMetadata,
     TableRuntime,
-    table_metadata_from_string,
 )
-from ._cursors import CursorColumn
-from ._connectors import Connector, ConnectorDescription, ConnectorRuntime
+from ._cursors import Cursor, CursorColumn
+from ._connectors import Connector, ConnectorCatalogEntry, ConnectorDescription, ConnectorRuntime
 from ._logging import LogLevel
-from ._queries import QuerySignature
+from ._queries import Query, QueryDefinition, QueryParameter, QueryParameterValue, QuerySignature
 from ._runtimes import Runtime
+from ._system import Health, SystemUpdate
+from ._tools import (
+    Tool,
+    ToolConnector,
+    ToolMetadata,
+    ToolParameter,
+    ToolRuntime,
+)
 from ._triggers import (
+    Trigger,
     TriggerCallback,
     TriggerDelta,
     TriggerSignature,
 )
 
 __all__ = [
+    "Agent",
+    "AgentMetadata",
+    "Authorization",
     "Configuration",
+    "Table",
     "TableColumn",
     "TableGenerator",
     "TableMetadata",
     "TableRuntime",
-    "table_metadata_from_string",
+    "Cursor",
     "CursorColumn",
     "Connector",
+    "ConnectorCatalogEntry",
     "ConnectorDescription",
     "ConnectorRuntime",
     "LogLevel",
+    "Query",
+    "QueryDefinition",
+    "QueryParameter",
+    "QueryParameterValue",
     "QuerySignature",
     "Runtime",
+    "Health",
+    "SystemUpdate",
+    "Tool",
+    "ToolConnector",
+    "ToolMetadata",
+    "ToolParameter",
+    "ToolRuntime",
+    "Trigger",
     "TriggerCallback",
     "TriggerDelta",
     "TriggerSignature",

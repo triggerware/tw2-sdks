@@ -16,3 +16,7 @@ export interface NamedColumn {
 export interface Health {
   status: string
 }
+
+export interface AuthorizationResult {
+  url?: string
+}

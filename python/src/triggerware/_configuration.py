@@ -6,12 +6,16 @@ import tw2_jsonrpc as rpc
 
 
 class Configuration(TypedDict):
-    default_timeout_ms: NotRequired[int]
-    default_batch_size: NotRequired[int]
-    default_trigger_batch_size: NotRequired[int]
-    agent_provider: NotRequired[str]
-    agent_model: NotRequired[str]
-    max_log_file_size: NotRequired[str]
+    default_timeout_ms: int
+    default_batch_size: int
+    default_trigger_batch_size: int
+    agent_provider: str
+    agent_model: str
+    max_log_file_size: str
+
+
+class Authorization(TypedDict):
+    url: NotRequired[str]
 
 
 class ConfigurationService:
@@ -31,7 +35,8 @@ class ConfigurationService:
         agent_model: str | None = None,
         agent_api_key: str | None = None,
         max_log_file_size: str | None = None,
-    ) -> Configuration:
+        secure: bool = False,
+    ) -> Configuration | Authorization:
         params = {
             "default_timeout_ms": default_timeout_ms,
             "default_batch_size": default_batch_size,
@@ -40,6 +45,7 @@ class ConfigurationService:
             "agent_model": agent_model,
             "agent_api_key": agent_api_key,
             "max_log_file_size": max_log_file_size,
+            "secure": secure,
         }
         return await self._peer.call(
             "configuration.set",

@@ -4,13 +4,13 @@ from typing import Any, Literal, NotRequired, TypedDict
 
 import tw2_jsonrpc as rpc
 
+from ._configuration import Authorization
 
-ConnectorRuntime = Literal["lua", "python", "node"]
+
+ConnectorRuntime = Literal["python", "node"]
 
 
 class Connector(TypedDict):
-    name: str
-    tag: NotRequired[str]
     config: dict[str, Any] | None
     tables: list[str]
     tools: list[str]
@@ -20,11 +20,17 @@ class Connector(TypedDict):
 class ConnectorDescription(TypedDict):
     description: str
     config_schema: dict[str, Any]
+    oauth_provider: NotRequired[str]
     runtime: NotRequired[ConnectorRuntime]
     dependencies: NotRequired[list[str]]
     tables: list[str]
     tools: list[str]
     agents: list[str]
+
+
+class ConnectorCatalogEntry(TypedDict):
+    name: str
+    description: str
 
 
 class ConnectorsService:
@@ -38,27 +44,23 @@ class ConnectorsService:
         url: str | None = None,
         tag: str | None = None,
         config: dict[str, Any] | None = None,
-    ) -> None:
-        await self._peer.call(
+        secure: bool = False,
+    ) -> Authorization:
+        if name is None and url is None:
+            raise ValueError("name or url is required")
+        return await self._peer.call(
             "connectors.install",
-            _connector_params(name=name, url=url, tag=tag, config=config or {}),
+            _connector_params(name=name, url=url, tag=tag, config=config, secure=secure),
         )
 
-    async def get(self, name: str, *, tag: str | None = None) -> Connector:
+    async def get(
+        self, name: str | list[str], *, tag: str | None = None
+    ) -> Connector | list[Connector]:
         response = await self._peer.call(
             "connectors.get",
             _connector_params(name=name, tag=tag),
         )
-        connector: Connector = {
-            "name": name,
-            "config": response["config"],
-            "tables": response["tables"],
-            "tools": response["tools"],
-            "agents": response["agents"],
-        }
-        if tag is not None:
-            connector["tag"] = tag
-        return connector
+        return response["connectors"] if isinstance(name, list) else response
 
     async def list(self) -> list[str]:
         response = await self._peer.call("connectors.list")
@@ -69,14 +71,22 @@ class ConnectorsService:
         name: str,
         *,
         tag: str | None = None,
-        config: dict[str, Any],
-    ) -> None:
-        await self._peer.call(
+        config: dict[str, Any] | None = None,
+        secure: bool = False,
+    ) -> Authorization:
+        return await self._peer.call(
             "connectors.configure",
-            _connector_params(name=name, tag=tag, config=config),
+            _connector_params(name=name, tag=tag, config=config, secure=secure),
         )
 
-    async def catalog(self) -> list[str]:
+    async def authorize(self, name: str, *, tag: str | None = None) -> str:
+        response = await self._peer.call(
+            "connectors.authorize",
+            _connector_params(name=name, tag=tag),
+        )
+        return response["url"]
+
+    async def catalog(self) -> list[ConnectorCatalogEntry]:
         response = await self._peer.call("connectors.catalog")
         return response["connectors"]
 
@@ -86,12 +96,14 @@ class ConnectorsService:
         name: str | None = None,
         url: str | None = None,
     ) -> ConnectorDescription:
+        if name is None and url is None:
+            raise ValueError("name or url is required")
         return await self._peer.call(
             "connectors.describe",
             _connector_params(name=name, url=url),
         )
 
-    async def uninstall(self, name: str, *, tag: str | None = None) -> None:
+    async def uninstall(self, name: str | list[str], *, tag: str | None = None) -> None:
         await self._peer.call(
             "connectors.uninstall",
             _connector_params(name=name, tag=tag),

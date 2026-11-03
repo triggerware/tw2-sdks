@@ -1,19 +1,22 @@
 use std::sync::Arc;
 
-use tw2_jsonrpc::DynamicParams;
 use tw2_jsonrpc::prelude::*;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Default, Serialize, Deserialize, Params)]
 #[serde_with::skip_serializing_none]
 pub struct RunOptions {
-    pub batch_size: Option<u32>,
-    pub timeout_ms: Option<u32>,
+    pub batch_size: Option<usize>,
+    pub timeout_ms: Option<u64>,
 }
 
-pub enum CursorCreation {
-    Sql(String),
-    Prompt(String),
+#[derive(Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct CursorOpenOptions {
+    pub sql: Option<String>,
+    pub prompt: Option<String>,
+    #[serde(flatten)]
+    pub run: RunOptions,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -27,8 +30,6 @@ pub struct CursorColumn {
 pub struct Cursor {
     #[serde(skip)]
     peer: Option<Arc<Peer>>,
-    #[serde(skip)]
-    config: RunOptions,
     #[serde(rename = "cursor")]
     id: String,
     sql: String,
@@ -49,18 +50,12 @@ impl CursorsService {
         CursorsService { peer }
     }
 
-    pub async fn open(&self, open: CursorCreation, config: RunOptions) -> Result<Cursor> {
-        let params = match open {
-            CursorCreation::Sql(sql) => params!({"sql": sql}),
-            CursorCreation::Prompt(prompt) => params!({"prompt": prompt}),
-        };
-
-        let mut cursor: Cursor = self
-            .peer
-            .call("cursors.open", config.with_params(params)?)
-            .await?;
+    pub async fn open(&self, options: CursorOpenOptions) -> Result<Cursor> {
+        if options.sql.is_some() == options.prompt.is_some() {
+            return Err(JsonRpcError::invalid_params());
+        }
+        let mut cursor: Cursor = self.peer.call("cursors.open", options).await?;
         cursor.peer = Some(self.peer.clone());
-        cursor.config = config;
         Ok(cursor)
     }
 }
@@ -83,7 +78,7 @@ impl Cursor {
         }
 
         if self.exhausted {
-            return Ok(vec![])
+            return Ok(vec![]);
         }
         let fetch: CursorFetch = self
             .peer()?
@@ -96,23 +91,16 @@ impl Cursor {
     }
 
     pub async fn next(&mut self) -> Result<Option<Vec<Value>>> {
-        if let Some(row) = self.cache.get(self.cache_position).cloned() {
-            self.cache_position += 1;
-            return Ok(Some(row));
+        loop {
+            if let Some(row) = self.cache.get(self.cache_position).cloned() {
+                self.cache_position += 1;
+                return Ok(Some(row));
+            }
+            if self.exhausted {
+                return Ok(None);
+            }
+            self.fetch().await?;
         }
-
-        if self.exhausted {
-            return Ok(None);
-        }
-
-        self.fetch().await?;
-
-        if let Some(row) = self.cache.get(self.cache_position).cloned() {
-            self.cache_position += 1;
-            return Ok(Some(row));
-        }
-
-        Ok(None)
     }
 
     pub async fn close(&mut self) -> Result<()> {
@@ -127,19 +115,5 @@ impl Cursor {
         self.peer
             .clone()
             .ok_or_else(|| JsonRpcError::internal_error("cursor is not attached to a peer"))
-    }
-}
-
-impl RunOptions {
-    pub(crate) fn with_params(self, mut params: DynamicParams) -> Result<DynamicParams> {
-        if let Some(batch_size) = self.batch_size {
-            params = params.with("batch_size", batch_size)?;
-        }
-
-        if let Some(timeout_ms) = self.timeout_ms {
-            params = params.with("timeout_ms", timeout_ms)?;
-        }
-
-        Ok(params)
     }
 }

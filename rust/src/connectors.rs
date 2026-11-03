@@ -1,20 +1,12 @@
 use std::sync::Arc;
 
-use tw2_jsonrpc::prelude::*;
 use serde::{Deserialize, Serialize};
 use serde_json::Map;
-
-pub struct ConnectorsService {
-    peer: Arc<Peer>,
-}
+use tw2_jsonrpc::prelude::*;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Connector {
-    #[serde(skip_deserializing)]
-    name: String,
-    #[serde(skip_deserializing)]
-    tag: Option<String>,
-    pub config: Option<Map<String, Value>>,
+    pub config: Map<String, Value>,
     pub tables: Vec<String>,
     pub tools: Vec<String>,
     pub agents: Vec<String>,
@@ -24,9 +16,8 @@ pub struct Connector {
 pub struct ConnectorDescription {
     pub description: String,
     pub config_schema: Map<String, Value>,
-    #[serde(default)]
     pub oauth_provider: Option<String>,
-    pub runtime: Option<crate::Runtime>,
+    pub runtime: Option<crate::ExternalRuntime>,
     pub dependencies: Option<Vec<String>>,
     pub tables: Vec<String>,
     pub tools: Vec<String>,
@@ -45,7 +36,17 @@ pub struct ConnectorInstall {
     pub name: Option<String>,
     pub url: Option<String>,
     pub tag: Option<String>,
-    pub config: Map<String, Value>,
+    pub config: Option<Map<String, Value>>,
+    pub secure: Option<bool>,
+}
+
+#[derive(Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct ConnectorConfiguration {
+    pub name: String,
+    pub tag: Option<String>,
+    pub config: Option<Map<String, Value>>,
+    pub secure: Option<bool>,
 }
 
 #[derive(Default, Serialize, Params)]
@@ -55,161 +56,82 @@ pub struct ConnectorReference {
     pub url: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct ConnectorAuthorization {
-    pub url: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct ConnectorList {
-    connectors: Vec<String>,
-}
-
-#[derive(Deserialize)]
-struct ConnectorCatalog {
-    connectors: Vec<ConnectorCatalogEntry>,
+pub struct ConnectorsService {
+    peer: Arc<Peer>,
 }
 
 impl ConnectorsService {
-    pub fn new(peer: Arc<Peer>) -> ConnectorsService {
-        ConnectorsService { peer }
+    pub fn new(peer: Arc<Peer>) -> Self {
+        Self { peer }
     }
 
-    pub async fn install(&self, install: ConnectorInstall) -> Result<ConnectorAuthorization> {
-        self.peer.call("connectors.install", install).await
+    pub async fn install(&self, options: ConnectorInstall) -> Result<crate::AuthorizationResult> {
+        if options.name.is_none() && options.url.is_none() {
+            return Err(JsonRpcError::invalid_params());
+        }
+        self.peer.call("connectors.install", options).await
     }
 
-    pub async fn install_secure(
-        &self,
-        name: Option<impl Into<String>>,
-        url: Option<impl Into<String>>,
-        tag: Option<impl Into<String>>,
-    ) -> Result<ConnectorAuthorization> {
-        let mut params = params!().with("secure", true)?;
-        if let Some(name) = name {
-            params = params.with("name", name.into())?;
+    pub async fn get(&self, names: Vec<String>, tag: Option<String>) -> Result<Vec<Connector>> {
+        #[derive(Deserialize)]
+        struct ConnectorList {
+            connectors: Vec<Connector>,
         }
-        if let Some(url) = url {
-            params = params.with("url", url.into())?;
-        }
+        let mut params = params!({"name": names});
         if let Some(tag) = tag {
-            params = params.with("tag", tag.into())?;
-        }
-        self.peer.call("connectors.install", params).await
-    }
-
-    pub async fn authorize(
-        &self,
-        name: impl Into<String>,
-        tag: Option<impl Into<String>>,
-    ) -> Result<ConnectorAuthorization> {
-        let mut params = params!().with("name", name.into())?;
-        if let Some(tag) = tag {
-            params = params.with("tag", tag.into())?;
-        }
-        self.peer.call("connectors.authorize", params).await
-    }
-
-    pub async fn get(
-        &self,
-        name: impl Into<String>,
-        tag: Option<impl Into<String>>,
-    ) -> Result<Connector> {
-        let name = name.into();
-        let tag = tag.map(Into::into);
-        let mut params = params!().with("name", name.clone())?;
-        if let Some(tag) = tag.clone() {
             params = params.with("tag", tag)?;
         }
-        let mut connector: Connector = self
-            .peer
-            .call("connectors.get", params)
-            .await?;
-        connector.name = name;
-        connector.tag = tag;
-        Ok(connector)
+        let response: ConnectorList = self.peer.call("connectors.get", params).await?;
+        Ok(response.connectors)
     }
 
     pub async fn list(&self) -> Result<Vec<String>> {
-        self.peer
-            .call::<ConnectorList>("connectors.list", ())
-            .await
-            .map(|response| response.connectors)
-    }
-
-    pub async fn configure<C>(
-        &self,
-        name: impl Into<String>,
-        tag: Option<impl Into<String>>,
-        config: C,
-    ) -> Result<()>
-    where
-        C: Serialize,
-    {
-        let mut params = params!()
-            .with("name", name.into())?
-            .with("config", config)?;
-        if let Some(tag) = tag {
-            params = params.with("tag", tag.into())?;
-        }
-        self.peer
-            .call::<()>("connectors.configure", params)
-            .await
-    }
-
-    pub async fn configure_secure(
-        &self,
-        name: impl Into<String>,
-        tag: Option<impl Into<String>>,
-    ) -> Result<Option<String>> {
         #[derive(Deserialize)]
-        struct SecureConfiguration {
+        struct ConnectorList {
+            connectors: Vec<String>,
+        }
+        let response: ConnectorList = self.peer.call("connectors.list", ()).await?;
+        Ok(response.connectors)
+    }
+
+    pub async fn uninstall(&self, names: Vec<String>, tag: Option<String>) -> Result<()> {
+        let mut params = params!({"name": names});
+        if let Some(tag) = tag {
+            params = params.with("tag", tag)?;
+        }
+        self.peer.call("connectors.uninstall", params).await
+    }
+
+    pub async fn configure(&self, options: ConnectorConfiguration) -> Result<crate::AuthorizationResult> {
+        self.peer.call("connectors.configure", options).await
+    }
+
+    pub async fn authorize(&self, name: impl Into<String>, tag: Option<String>) -> Result<String> {
+        #[derive(Deserialize)]
+        struct Authorization {
             url: String,
         }
-
-        let mut params = params!()
-            .with("name", name.into())?
-            .with("secure", true)?;
+        let mut params = params!({"name": name.into()});
         if let Some(tag) = tag {
-            params = params.with("tag", tag.into())?;
+            params = params.with("tag", tag)?;
         }
-        let response: Option<SecureConfiguration> =
-            self.peer.call("connectors.configure", params).await?;
-        Ok(response.map(|response| response.url))
+        let response: Authorization = self.peer.call("connectors.authorize", params).await?;
+        Ok(response.url)
     }
 
     pub async fn catalog(&self) -> Result<Vec<ConnectorCatalogEntry>> {
-        self.peer
-            .call::<ConnectorCatalog>("connectors.catalog", ())
-            .await
-            .map(|response| response.connectors)
+        #[derive(Deserialize)]
+        struct ConnectorCatalog {
+            connectors: Vec<ConnectorCatalogEntry>,
+        }
+        let response: ConnectorCatalog = self.peer.call("connectors.catalog", ()).await?;
+        Ok(response.connectors)
     }
 
     pub async fn describe(&self, reference: ConnectorReference) -> Result<ConnectorDescription> {
-        self.peer.call("connectors.describe", reference).await
-    }
-
-    pub async fn uninstall(
-        &self,
-        name: impl Into<String>,
-        tag: Option<impl Into<String>>,
-    ) -> Result<()> {
-        let mut params = params!().with("name", name.into())?;
-        if let Some(tag) = tag {
-            params = params.with("tag", tag.into())?;
+        if reference.name.is_none() && reference.url.is_none() {
+            return Err(JsonRpcError::invalid_params());
         }
-        self.peer
-            .call("connectors.uninstall", params)
-            .await
-    }
-}
-
-impl Connector {
-    pub fn name(&self) -> &str {
-        &self.name
-    }
-
-    pub fn tag(&self) -> Option<&str> {
-        self.tag.as_deref()
+        self.peer.call("connectors.describe", reference).await
     }
 }

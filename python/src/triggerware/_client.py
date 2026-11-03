@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Self
+from typing import Any, Self
 
 import tw2_jsonrpc as rpc
 
@@ -10,6 +10,7 @@ from ._cursors import CursorsService
 from ._connectors import ConnectorsService
 from ._logging import LoggingService
 from ._agents import AgentsService
+from ._tools import ToolsService
 from ._queries import QueriesService
 from ._runtimes import RuntimesService
 from ._system import SystemService
@@ -26,12 +27,17 @@ class TriggerwareClient:
         self.connectors = ConnectorsService(peer)
         self.logging = LoggingService(peer)
         self.agents = AgentsService(peer)
+        self.tools = ToolsService(peer)
         self.queries = QueriesService(peer)
         self.runtimes = RuntimesService(peer)
         self.system = SystemService(peer)
         self.triggers = TriggersService(peer)
 
-    # do we need enter? exit? close?
+    async def mcp(self, method: str, params: dict[str, Any] | None = None) -> Any:
+        request: dict[str, Any] = {"method": method}
+        if params is not None:
+            request["params"] = params
+        return await self._peer.call("mcp", request)
 
     @classmethod
     async def connect_tcp(cls, address: str) -> Self:

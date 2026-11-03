@@ -2,25 +2,26 @@ import type { Peer } from "tw2-jsonrpc"
 import { definedParams } from "./utils.js"
 
 export interface Configuration {
-  defaultTimeoutMs?: number
-  defaultBatchSize?: number
-  defaultTriggerBatchSize?: number
-  agentProvider?: string
-  agentModel?: string
-  maxLogFileSize?: string
+  defaultTimeoutMs: number
+  defaultBatchSize: number
+  defaultTriggerBatchSize: number
+  agentProvider: string
+  agentModel: string
+  maxLogFileSize: string
 }
 
-export interface ConfigurationUpdate extends Configuration {
+export interface ConfigurationUpdate extends Partial<Configuration> {
   agentApiKey?: string
+  secure?: boolean
 }
 
 interface ConfigurationWire {
-  default_timeout_ms?: number
-  default_batch_size?: number
-  default_trigger_batch_size?: number
-  agent_provider?: string
-  agent_model?: string
-  max_log_file_size?: string
+  default_timeout_ms: number
+  default_batch_size: number
+  default_trigger_batch_size: number
+  agent_provider: string
+  agent_model: string
+  max_log_file_size: string
 }
 
 export class ConfigurationService {
@@ -34,12 +35,12 @@ export class ConfigurationService {
     return configurationFromWire(await this.#peer.call<ConfigurationWire>("configuration.get"))
   }
 
-  async set(config: ConfigurationUpdate): Promise<Configuration> {
-    const response = await this.#peer.call<ConfigurationWire>(
+  async set(config: ConfigurationUpdate): Promise<Configuration | { url: string }> {
+    const response = await this.#peer.call<ConfigurationWire | { url: string }>(
       "configuration.set",
       configurationToWire(config),
     )
-    return configurationFromWire(response)
+    return "url" in response ? response : configurationFromWire(response)
   }
 
   async refresh(): Promise<Configuration> {
@@ -56,6 +57,7 @@ function configurationToWire(config: ConfigurationUpdate): Record<string, unknow
     agent_model: config.agentModel,
     agent_api_key: config.agentApiKey,
     max_log_file_size: config.maxLogFileSize,
+    secure: config.secure,
   })
 }
 
