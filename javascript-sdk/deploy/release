@@ -23,13 +23,32 @@ def set_version(new):
     data["version"] = new
     MANIFEST.write_text(json.dumps(data, indent=2) + "\n")
 
+def latest_version():
+    tags = subprocess.check_output(
+        ["git", "tag", "--list", "javascript-sdk/v*", "--sort=-v:refname"],
+        cwd=ROOT.parent,
+        text=True,
+    ).splitlines()
+    return tags[0].removeprefix("javascript-sdk/v") if tags else None
+
 parser = argparse.ArgumentParser()
 parser.add_argument("--first", action="store_true")
 parser.add_argument("--minor", action="store_true")
 args = parser.parse_args()
 
 old = read_manifest()["version"]
-new = old if args.first else bump_minor(old) if args.minor else bump(old)
+released = latest_version()
+if args.first:
+    new = old
+elif old == released:
+    new = bump_minor(old) if args.minor else bump(old)
+elif released and old == (bump_minor(released) if args.minor else bump(released)):
+    new = old
+else:
+    raise SystemExit(
+        f"Cannot release JavaScript SDK: manifest version {old} does not follow "
+        f"the latest tag javascript-sdk/v{released}."
+    )
 
 set_version(new)
 shutil.rmtree(ROOT / "dist", ignore_errors=True)

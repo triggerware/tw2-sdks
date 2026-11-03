@@ -62,12 +62,12 @@ function configurationToWire(config: ConfigurationUpdate): Record<string, unknow
 }
 
 function configurationFromWire(config: ConfigurationWire): Configuration {
-  return definedParams({
+  return {
     defaultTimeoutMs: config.default_timeout_ms,
     defaultBatchSize: config.default_batch_size,
     defaultTriggerBatchSize: config.default_trigger_batch_size,
     agentProvider: config.agent_provider,
     agentModel: config.agent_model,
     maxLogFileSize: config.max_log_file_size,
-  }) as Configuration
+  }
 }
