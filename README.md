@@ -20,4 +20,4 @@ irm https://tw2-releases.s3.us-east-2.amazonaws.com/install.ps1 | iex
 
 ## SDKs
 
-Triggerware supports [Python](python/README.md) (`pip install triggerware`), [Rust](rust/README.md) (`cargo add triggerware`), and [Node.js](javascript-sdk/README.md) (`npm install triggerware`).
+Triggerware supports [Python](python/README.md) (`pip install triggerware`), [Rust](rust/README.md) (`cargo add triggerware`), and [Node.js](node/README.md) (`npm install triggerware`).

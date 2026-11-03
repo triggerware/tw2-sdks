@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SDKS = [
     ("python", ROOT / "python" / "pyproject.toml", ROOT / "python"),
     ("rust", ROOT / "rust" / "Cargo.toml", ROOT / "rust"),
-    ("javascript-sdk", ROOT / "javascript-sdk" / "package.json", ROOT / "javascript-sdk"),
+    ("javascript-sdk", ROOT / "node" / "package.json", ROOT / "node"),
 ]
 
 def sh(*args, check=True, **kwargs):
