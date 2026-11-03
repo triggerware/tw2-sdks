@@ -14,6 +14,10 @@ def bump(v):
         return f"1.{minor + 1}.0"
     return f"1.{minor}.{patch + 1}"
 
+def bump_minor(v):
+    major, minor, _patch = map(int, v.split("."))
+    return f"{major}.{minor + 1}.0"
+
 def set_version(old, new):
     MANIFEST.write_text(MANIFEST.read_text().replace(f'version = "{old}"', f'version = "{new}"', 1))
 
@@ -27,6 +31,7 @@ def latest_version():
 
 p = argparse.ArgumentParser()
 p.add_argument("--first", action="store_true")
+p.add_argument("--minor", action="store_true")
 args = p.parse_args()
 
 old = read_version()
@@ -34,8 +39,8 @@ released = latest_version()
 if args.first:
     new = old
 elif old == released:
-    new = bump(old)
-elif released and old == bump(released):
+    new = bump_minor(old) if args.minor else bump(old)
+elif released and old == (bump_minor(released) if args.minor else bump(released)):
     new = old
 else:
     raise SystemExit(

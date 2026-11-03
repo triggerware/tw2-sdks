@@ -9,7 +9,7 @@ keywords = ["triggerware", "sdk", "rpc"]
 categories = ["api-bindings", "asynchronous"]
 
 [dependencies]
-tw2-jsonrpc = { version = "1", path = "../../tw2-jsonrpc/rust" }
+tw2-jsonrpc = { version = "1.1", path = "../../tw2-jsonrpc/rust" }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 serde_yaml = "0.9"

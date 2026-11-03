@@ -20,16 +20,22 @@ def bump(v):
     return f"1.{minor}.{patch + 1}"
 
 
+def bump_minor(v):
+    major, minor, _patch = map(int, v.split("."))
+    return f"{major}.{minor + 1}.0"
+
+
 def set_version(old, new):
     MANIFEST.write_text(MANIFEST.read_text().replace(f'version = "{old}"', f'version = "{new}"', 1))
 
 
 p = argparse.ArgumentParser()
 p.add_argument("--first", action="store_true")
+p.add_argument("--minor", action="store_true")
 args = p.parse_args()
 
 old = read_version()
-new = old if args.first else bump(old)
+new = old if args.first else bump_minor(old) if args.minor else bump(old)
 
 set_version(old, new)
 shutil.rmtree(ROOT / "dist", ignore_errors=True)
