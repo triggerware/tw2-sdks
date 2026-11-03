@@ -30,7 +30,8 @@ pub use connectors::{
     ConnectorInstall, ConnectorReference,
 };
 pub use queries::{
-    Query, QueryFetchOptions, QueryParameterValue, QuerySignature, QueryWrite,
+    Query, QueryConvertOptions, QueryConvertResult, QueryFetchOptions, QueryParameterValue,
+    QuerySignature, QueryWrite,
 };
 pub use logging::LogLevel;
 pub use runtimes::ExternalRuntime;
@@ -49,7 +50,7 @@ pub mod prelude {
     pub use crate::{ExternalRuntime, LogLevel, ResourceConfiguration, Runtime};
     pub use crate::cursors::{CursorOpenOptions, RunOptions};
     pub use crate::connectors::{ConnectorConfiguration, ConnectorInstall, ConnectorReference};
-    pub use crate::queries::{QueryFetchOptions, QueryParameterValue, QueryWrite};
+    pub use crate::queries::{QueryConvertOptions, QueryFetchOptions, QueryParameterValue, QueryWrite};
     pub use crate::triggers::TriggerWrite;
     pub use crate::TriggerwareClient;
 }

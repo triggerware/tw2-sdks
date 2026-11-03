@@ -232,122 +232,126 @@ The Triggerware JavaScript SDK is a typed client for calling a Triggerware serve
 
     This is used for creating a saved query from SQL or a natural-language prompt.
 
-59. `QueriesService.get(name: string | string[]): Promise<Query | Query[]>`
+59. `QueriesService.convert(conversion: QueryConversion): Promise<QueryFetch>`
+
+    This is used for converting a saved query into a trigger and returning its initial baseline rows.
+
+60. `QueriesService.get(name: string | string[]): Promise<Query | Query[]>`
 
     This is used for retrieving one or more saved queries as stateful query objects.
 
-60. `QueriesService.list(): Promise<string[]>`
+61. `QueriesService.list(): Promise<string[]>`
 
     This is used for listing all saved query names.
 
-61. `QueriesService.delete(name: string | string[]): Promise<void>`
+62. `QueriesService.delete(name: string | string[]): Promise<void>`
 
     This is used for deleting one or more saved queries.
 
-62. `new Query(peer: Peer, definition: QueryDefinition): Query`
+63. `new Query(peer: Peer, definition: QueryDefinition): Query`
 
     This is used for representing a saved query and its local iteration state.
 
-63. `Query.reset(): Promise<void>`
+64. `Query.reset(): Promise<void>`
 
     This is used for resetting the saved query's server-side cursor and refreshing its definition.
 
-64. `Query.fetch(options?: QueryFetchOptions): Promise<Row[]>`
+65. `Query.fetch(options?: QueryFetchOptions): Promise<Row[]>`
 
     This is used for fetching the next batch of rows from a saved query.
 
-65. `Query.next(options?: QueryFetchOptions): Promise<Row | null>`
+66. `Query.next(options?: QueryFetchOptions): Promise<Row | null>`
 
     This is used for retrieving the next individual saved-query row or returning `null` when exhausted.
 
-66. `Query[Symbol.asyncIterator](): AsyncIterator<Row>`
+67. `Query[Symbol.asyncIterator](): AsyncIterator<Row>`
 
     This is used for iterating asynchronously over rows from the saved query.
 
-67. `new RuntimesService(peer: Peer): RuntimesService`
+68. `new RuntimesService(peer: Peer): RuntimesService`
 
     This is used for creating a service that manages Triggerware's external runtimes.
 
-68. `RuntimesService.list(): Promise<string[]>`
+69. `RuntimesService.list(): Promise<string[]>`
 
     This is used for listing installed external runtimes.
 
-69. `RuntimesService.install(name: ExternalRuntime): Promise<void>`
+70. `RuntimesService.install(name: ExternalRuntime): Promise<void>`
 
     This is used for installing the selected Python or Node runtime.
 
-70. `RuntimesService.uninstall(name: ExternalRuntime): Promise<void>`
+71. `RuntimesService.uninstall(name: ExternalRuntime): Promise<void>`
 
     This is used for uninstalling the selected external runtime.
 
-71. `new SystemService(peer: Peer): SystemService`
+72. `new SystemService(peer: Peer): SystemService`
 
     This is used for creating a service that accesses Triggerware system and connection operations.
 
-72. `SystemService.health(): Promise<Health>`
+73. `SystemService.health(): Promise<Health>`
 
     This is used for checking whether the Triggerware server is healthy enough to accept requests.
 
-73. `SystemService.update(): Promise<SystemUpdate>`
+74. `SystemService.update(): Promise<SystemUpdate>`
 
     This is used for updating the local Triggerware installation and reporting the updated components and restart requirement.
 
-74. `SystemService.authorize(apiKey: string): Promise<boolean>`
+75. `SystemService.authorize(apiKey: string): Promise<boolean>`
 
     This is used for authorizing a WebSocket connection with a Triggerware API key.
 
-75. `SystemService.authorized(): Promise<boolean>`
+76. `SystemService.authorized(): Promise<boolean>`
 
     This is used for checking whether the current connection is authorized.
 
-76. `new TriggersService(peer: Peer): TriggersService`
+77. `new TriggersService(peer: Peer): TriggersService`
 
     This is used for creating a service that manages and watches Triggerware triggers.
 
-77. `TriggersService.create(creation: TriggerCreation): Promise<Trigger>`
+78. `TriggersService.create(creation: TriggerCreation): Promise<Trigger>`
 
     This is used for creating a trigger from an explicit query definition or a natural-language prompt.
 
-78. `TriggersService.get(name: string | string[]): Promise<Trigger | Trigger[]>`
+79. `TriggersService.get(name: string | string[]): Promise<Trigger | Trigger[]>`
 
     This is used for retrieving one or more trigger definitions.
 
-79. `TriggersService.update(name: string, update: TriggerUpdate): Promise<Trigger>`
+80. `TriggersService.update(name: string, update: TriggerUpdate): Promise<Trigger>`
 
     This is used for updating an existing trigger's query, schedule, execution settings, or enabled state.
 
-80. `TriggersService.list(): Promise<string[]>`
+81. `TriggersService.list(): Promise<string[]>`
 
     This is used for listing all registered trigger names.
 
-81. `TriggersService.delete(name: string | string[]): Promise<void>`
+82. `TriggersService.delete(name: string | string[]): Promise<void>`
 
     This is used for deleting one or more triggers.
 
-82. `TriggersService.enable(name: string): Promise<void>`
+83. `TriggersService.enable(name: string): Promise<void>`
 
     This is used for enabling scheduled execution of a trigger.
 
-83. `TriggersService.disable(name: string): Promise<void>`
+84. `TriggersService.disable(name: string): Promise<void>`
 
     This is used for disabling scheduled execution of a trigger.
 
-84. `TriggersService.run(name: string, options?: RunOptions): Promise<TriggerDelta>`
+85. `TriggersService.run(name: string, options?: RunOptions): Promise<TriggerDelta>`
 
     This is used for running a trigger immediately and returning its added and deleted rows.
 
-85. `TriggersService.poll(name: string): Promise<TriggerDelta[]>`
+86. `TriggersService.poll(name: string): Promise<TriggerDelta[]>`
 
     This is used for draining and returning the trigger's cached deltas.
 
-86. `TriggersService.watch(name: string, callback: TriggerCallback, options?: { resumeWindowMs?: number }): Promise<string>`
+87. `TriggersService.watch(name: string, callback: TriggerCallback, options?: { resumeWindowMs?: number }): Promise<string>`
 
     This is used for subscribing to a trigger's retained and future deltas and receiving a resume token.
 
-87. `TriggersService.resume(name: string, resumeToken: string, callback: TriggerCallback, options?: { resumeWindowMs?: number }): Promise<string>`
+88. `TriggersService.resume(name: string, resumeToken: string, callback: TriggerCallback, options?: { resumeWindowMs?: number }): Promise<string>`
 
     This is used for resuming a trigger subscription from a valid token and receiving the active token.
 
-88. `TriggersService.unwatch(options: { name?: string; resumeToken?: string }): Promise<void>`
+89. `TriggersService.unwatch(options: { name?: string; resumeToken?: string }): Promise<void>`
 
     This is used for stopping a trigger subscription by trigger name or resume token.

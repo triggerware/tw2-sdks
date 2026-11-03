@@ -11,7 +11,14 @@ from ._tables import (
 from ._cursors import Cursor, CursorColumn
 from ._connectors import Connector, ConnectorCatalogEntry, ConnectorDescription, ConnectorRuntime
 from ._logging import LogLevel
-from ._queries import Query, QueryDefinition, QueryParameter, QueryParameterValue, QuerySignature
+from ._queries import (
+    Query,
+    QueryDefinition,
+    QueryFetch,
+    QueryParameter,
+    QueryParameterValue,
+    QuerySignature,
+)
 from ._runtimes import Runtime
 from ._system import Health, SystemUpdate
 from ._tools import (
@@ -47,6 +54,7 @@ __all__ = [
     "LogLevel",
     "Query",
     "QueryDefinition",
+    "QueryFetch",
     "QueryParameter",
     "QueryParameterValue",
     "QuerySignature",

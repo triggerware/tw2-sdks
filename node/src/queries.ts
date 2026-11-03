@@ -22,7 +22,7 @@ interface QueryList {
   queries: string[]
 }
 
-interface QueryFetch {
+export interface QueryFetch {
   rows: Row[]
   exhausted: boolean
 }
@@ -46,6 +46,16 @@ export interface QueryFetchOptions {
   rows?: number
 }
 
+export interface QueryConversion extends RunOptions {
+  name: string
+  triggerName?: string
+  prompt?: string
+  params?: QueryParameterValue[]
+  schedule?: string
+  reportNoops?: boolean
+  enabled?: boolean
+}
+
 export class QueriesService {
   readonly #peer: Peer
 
@@ -59,6 +69,23 @@ export class QueriesService {
       queryParams(creation),
     )
     return new Query(this.#peer, definition)
+  }
+
+  convert(conversion: QueryConversion): Promise<QueryFetch> {
+    return this.#peer.call<QueryFetch>(
+      "queries.convert",
+      definedParams({
+        name: conversion.name,
+        trigger_name: conversion.triggerName,
+        prompt: conversion.prompt,
+        params: conversion.params,
+        schedule: conversion.schedule,
+        batch_size: conversion.batchSize,
+        timeout_ms: conversion.timeoutMs,
+        report_noops: conversion.reportNoops,
+        enabled: conversion.enabled,
+      }),
+    )
   }
 
   async get(name: string | string[]): Promise<Query | Query[]> {

@@ -135,6 +135,34 @@ class QueriesService:
         definition: QueryDefinition = await self._peer.call("queries.create", definition_params)
         return Query(self._peer, definition)
 
+    async def convert(
+        self,
+        name: str,
+        *,
+        trigger_name: str | None = None,
+        prompt: str | None = None,
+        params: list[QueryParameterValue] | None = None,
+        schedule: str | None = None,
+        batch_size: int | None = None,
+        timeout_ms: int | None = None,
+        report_noops: bool | None = None,
+        enabled: bool | None = None,
+    ) -> QueryFetch:
+        return await self._peer.call(
+            "queries.convert",
+            _query_params(
+                name=name,
+                trigger_name=trigger_name,
+                prompt=prompt,
+                params=params,
+                schedule=schedule,
+                batch_size=batch_size,
+                timeout_ms=timeout_ms,
+                report_noops=report_noops,
+                enabled=enabled,
+            ),
+        )
+
     async def get(self, name: str | list[str]) -> Query | list[Query]:
         response = await self._peer.call(
             "queries.get",

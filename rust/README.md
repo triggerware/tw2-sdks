@@ -184,142 +184,146 @@ The Triggerware Rust SDK is a typed client for communicating with a Triggerware 
 
     This is used for creating a saved query from SQL or a natural-language prompt.
 
-47. `pub async fn QueriesService::get(&self, names: Vec<String>) -> Result<Vec<Query>>`
+47. `pub async fn QueriesService::convert(&self, options: QueryConvertOptions) -> Result<QueryConvertResult>`
+
+    This is used for converting a saved query into a trigger and returning its initial rows and exhaustion state.
+
+48. `pub async fn QueriesService::get(&self, names: Vec<String>) -> Result<Vec<Query>>`
 
     This is used for retrieving one or more saved queries by name.
 
-48. `pub async fn QueriesService::delete(&self, names: Vec<String>) -> Result<()>`
+49. `pub async fn QueriesService::delete(&self, names: Vec<String>) -> Result<()>`
 
     This is used for deleting one or more saved queries.
 
-49. `pub async fn QueriesService::list(&self) -> Result<Vec<String>>`
+50. `pub async fn QueriesService::list(&self) -> Result<Vec<String>>`
 
     This is used for listing all saved query names.
 
-50. `pub fn Query::name(&self) -> &str`
+51. `pub fn Query::name(&self) -> &str`
 
     This is used for reading a saved query's name.
 
-51. `pub fn Query::description(&self) -> &str`
+52. `pub fn Query::description(&self) -> &str`
 
     This is used for reading a saved query's description.
 
-52. `pub fn Query::params(&self) -> Option<&[QuerySignature]>`
+53. `pub fn Query::params(&self) -> Option<&[QuerySignature]>`
 
     This is used for reading the parameters accepted by a saved query.
 
-53. `pub fn Query::sql(&self) -> Option<&str>`
+54. `pub fn Query::sql(&self) -> Option<&str>`
 
     This is used for reading a saved query's SQL text when present.
 
-54. `pub fn Query::prompt(&self) -> Option<&str>`
+55. `pub fn Query::prompt(&self) -> Option<&str>`
 
     This is used for reading the prompt that produced a saved query when present.
 
-55. `pub fn Query::batch_size(&self) -> Option<usize>`
+56. `pub fn Query::batch_size(&self) -> Option<usize>`
 
     This is used for reading a saved query's configured batch size.
 
-56. `pub fn Query::timeout_ms(&self) -> Option<u64>`
+57. `pub fn Query::timeout_ms(&self) -> Option<u64>`
 
     This is used for reading a saved query's configured timeout.
 
-57. `pub fn Query::signature(&self) -> &[QuerySignature]`
+58. `pub fn Query::signature(&self) -> &[QuerySignature]`
 
     This is used for reading a saved query's result-column signature.
 
-58. `pub fn Query::is_exhausted(&self) -> bool`
+59. `pub fn Query::is_exhausted(&self) -> bool`
 
     This is used for checking whether a saved query has no more rows to fetch.
 
-59. `pub async fn Query::reset(&mut self) -> Result<()>`
+60. `pub async fn Query::reset(&mut self) -> Result<()>`
 
     This is used for resetting a saved query's persistent cursor state.
 
-60. `pub async fn Query::fetch(&mut self, options: QueryFetchOptions) -> Result<Vec<Vec<Value>>>`
+61. `pub async fn Query::fetch(&mut self, options: QueryFetchOptions) -> Result<Vec<Vec<Value>>>`
 
     This is used for fetching a batch of rows from a saved query with optional parameters and row limit.
 
-61. `pub async fn Query::next(&mut self) -> Result<Option<Vec<Value>>>`
+62. `pub async fn Query::next(&mut self) -> Result<Option<Vec<Value>>>`
 
     This is used for consuming one saved-query row at a time while fetching additional batches as needed.
 
-62. `pub async fn RuntimesService::list(&self) -> Result<Vec<ExternalRuntime>>`
+63. `pub async fn RuntimesService::list(&self) -> Result<Vec<ExternalRuntime>>`
 
     This is used for listing installed external runtimes.
 
-63. `pub async fn RuntimesService::install(&self, name: ExternalRuntime) -> Result<()>`
+64. `pub async fn RuntimesService::install(&self, name: ExternalRuntime) -> Result<()>`
 
     This is used for installing a Python or Node runtime.
 
-64. `pub async fn RuntimesService::uninstall(&self, name: ExternalRuntime) -> Result<()>`
+65. `pub async fn RuntimesService::uninstall(&self, name: ExternalRuntime) -> Result<()>`
 
     This is used for uninstalling an external runtime.
 
-65. `pub async fn SystemService::health(&self) -> Result<Health>`
+66. `pub async fn SystemService::health(&self) -> Result<Health>`
 
     This is used for checking whether the Triggerware server is healthy.
 
-66. `pub async fn SystemService::update(&self) -> Result<SystemUpdate>`
+67. `pub async fn SystemService::update(&self) -> Result<SystemUpdate>`
 
     This is used for updating the local Triggerware installation and reporting what changed.
 
-67. `pub async fn SystemService::authorize(&self, api_key: impl Into<String>) -> Result<bool>`
+68. `pub async fn SystemService::authorize(&self, api_key: impl Into<String>) -> Result<bool>`
 
     This is used for authorizing the current connection with an API key.
 
-68. `pub async fn SystemService::authorize_jwt(&self, jwt: impl Into<String>) -> Result<bool>`
+69. `pub async fn SystemService::authorize_jwt(&self, jwt: impl Into<String>) -> Result<bool>`
 
     This is used for authorizing the current connection with a JSON Web Token.
 
-69. `pub async fn SystemService::authorized(&self) -> Result<bool>`
+70. `pub async fn SystemService::authorized(&self) -> Result<bool>`
 
     This is used for checking whether the current connection is authorized.
 
-70. `pub async fn TriggersService::create(&self, options: TriggerWrite) -> Result<Trigger>`
+71. `pub async fn TriggersService::create(&self, options: TriggerWrite) -> Result<Trigger>`
 
     This is used for creating a trigger from SQL or a natural-language prompt.
 
-71. `pub async fn TriggersService::update(&self, options: TriggerWrite) -> Result<Trigger>`
+72. `pub async fn TriggersService::update(&self, options: TriggerWrite) -> Result<Trigger>`
 
     This is used for updating an existing trigger.
 
-72. `pub async fn TriggersService::get(&self, names: Vec<String>) -> Result<Vec<Trigger>>`
+73. `pub async fn TriggersService::get(&self, names: Vec<String>) -> Result<Vec<Trigger>>`
 
     This is used for retrieving one or more triggers by name.
 
-73. `pub async fn TriggersService::delete(&self, names: Vec<String>) -> Result<()>`
+74. `pub async fn TriggersService::delete(&self, names: Vec<String>) -> Result<()>`
 
     This is used for deleting one or more triggers.
 
-74. `pub async fn TriggersService::list(&self) -> Result<Vec<String>>`
+75. `pub async fn TriggersService::list(&self) -> Result<Vec<String>>`
 
     This is used for listing all registered trigger names.
 
-75. `pub async fn TriggersService::enable(&self, name: impl Into<String>) -> Result<()>`
+76. `pub async fn TriggersService::enable(&self, name: impl Into<String>) -> Result<()>`
 
     This is used for enabling scheduled execution for a trigger.
 
-76. `pub async fn TriggersService::disable(&self, name: impl Into<String>) -> Result<()>`
+77. `pub async fn TriggersService::disable(&self, name: impl Into<String>) -> Result<()>`
 
     This is used for disabling scheduled execution for a trigger.
 
-77. `pub async fn TriggersService::run(&self, name: impl Into<String>, options: RunOptions) -> Result<TriggerDelta>`
+78. `pub async fn TriggersService::run(&self, name: impl Into<String>, options: RunOptions) -> Result<TriggerDelta>`
 
     This is used for running a trigger immediately and returning its added and deleted rows.
 
-78. `pub async fn TriggersService::poll(&self, name: impl Into<String>) -> Result<Vec<TriggerDelta>>`
+79. `pub async fn TriggersService::poll(&self, name: impl Into<String>) -> Result<Vec<TriggerDelta>>`
 
     This is used for draining the retained deltas for a trigger.
 
-79. `pub async fn TriggersService::watch<F>(&self, name: impl Into<String>, resume_window_ms: Option<u64>, callback: F) -> Result<String> where F: Fn(Vec<Vec<Value>>, Vec<Vec<Value>>) + Send + Sync + 'static`
+80. `pub async fn TriggersService::watch<F>(&self, name: impl Into<String>, resume_window_ms: Option<u64>, callback: F) -> Result<String> where F: Fn(Vec<Vec<Value>>, Vec<Vec<Value>>) + Send + Sync + 'static`
 
     This is used for subscribing to retained and future trigger deltas over a streaming connection.
 
-80. `pub async fn TriggersService::resume<F>(&self, name: impl Into<String>, resume_token: impl Into<String>, resume_window_ms: Option<u64>, callback: F) -> Result<String> where F: Fn(Vec<Vec<Value>>, Vec<Vec<Value>>) + Send + Sync + 'static`
+81. `pub async fn TriggersService::resume<F>(&self, name: impl Into<String>, resume_token: impl Into<String>, resume_window_ms: Option<u64>, callback: F) -> Result<String> where F: Fn(Vec<Vec<Value>>, Vec<Vec<Value>>) + Send + Sync + 'static`
 
     This is used for resuming a trigger subscription from a valid resume token.
 
-81. `pub async fn TriggersService::unwatch(&self, name: Option<String>, resume_token: Option<String>) -> Result<()>`
+82. `pub async fn TriggersService::unwatch(&self, name: Option<String>, resume_token: Option<String>) -> Result<()>`
 
     This is used for stopping a trigger subscription by name or resume token.

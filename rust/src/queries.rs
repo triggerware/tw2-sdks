@@ -31,6 +31,26 @@ pub struct QueryFetchOptions {
     pub rows: Option<usize>,
 }
 
+#[derive(Default, Serialize, Params)]
+#[serde_with::skip_serializing_none]
+pub struct QueryConvertOptions {
+    pub name: String,
+    pub trigger_name: Option<String>,
+    pub prompt: Option<String>,
+    pub params: Option<Vec<QueryParameterValue>>,
+    pub schedule: Option<String>,
+    pub batch_size: Option<usize>,
+    pub timeout_ms: Option<u64>,
+    pub report_noops: Option<bool>,
+    pub enabled: Option<bool>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QueryConvertResult {
+    pub rows: Vec<Vec<Value>>,
+    pub exhausted: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuerySignature {
     pub name: String,
@@ -78,6 +98,10 @@ impl QueriesService {
         let mut query: Query = self.peer.call("queries.create", options).await?;
         query.peer = Some(self.peer.clone());
         Ok(query)
+    }
+
+    pub async fn convert(&self, options: QueryConvertOptions) -> Result<QueryConvertResult> {
+        self.peer.call("queries.convert", options).await
     }
 
     pub async fn get(&self, names: Vec<String>) -> Result<Vec<Query>> {
