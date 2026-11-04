@@ -10,12 +10,14 @@ Install the Triggerware server and built-in `tw` connector using the installer f
 
 ```sh
 curl -fsSL https://tw2-releases.s3.us-east-2.amazonaws.com/install.sh | sh
+curl -fsSL https://tw2-releases.s3.us-east-2.amazonaws.com/cli/install.sh | sh
 ```
 
 ### Windows
 
 ```powershell
 irm https://tw2-releases.s3.us-east-2.amazonaws.com/install.ps1 | iex
+irm https://tw2-releases.s3.us-east-2.amazonaws.com/cli/install.ps1 | iex
 ```
 
 ## SDKs
