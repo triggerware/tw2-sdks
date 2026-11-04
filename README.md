@@ -24,16 +24,18 @@ irm https://tw2-releases.s3.us-east-2.amazonaws.com/cli/install.ps1 | iex
 
 Triggerware supports [Python](python/README.md) (`pip install triggerware`), [Rust](rust/README.md) (`cargo add triggerware`), and [Node.js](node/README.md) (`npm install triggerware`).
 
+## Install the Triggerware Plugin
+
 Install the Triggerware plugin to use Triggerware from Codex or Claude Code.
 
-## Codex
+### Codex
 
 ```sh
 codex plugin marketplace add triggerware/tw2-integrations
 codex plugin add triggerware@triggerware
 ```
 
-## Claude Code
+### Claude Code
 
 ```sh
 claude plugin marketplace add triggerware/tw2-integrations
