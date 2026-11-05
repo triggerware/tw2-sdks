@@ -2,6 +2,7 @@
 
 Triggerware SDKs are typed clients for communicating with a Triggerware server without constructing JSON-RPC requests directly. They expose Triggerware tables, queries, triggers, agents, tools, connectors, and other runtime operations through native language APIs.
 
+
 ## Install Triggerware
 
 Install the Triggerware server and built-in `tw` connector using the installer for your platform.
@@ -19,6 +20,14 @@ curl -fsSL https://tw2-releases.s3.us-east-2.amazonaws.com/cli/install.sh | sh
 irm https://tw2-releases.s3.us-east-2.amazonaws.com/install.ps1 | iex
 irm https://tw2-releases.s3.us-east-2.amazonaws.com/cli/install.ps1 | iex
 ```
+
+Then run:
+
+```
+triggerware start
+```
+
+By default, a locally running Triggerware server accepts TCP SDK connections at `localhost:5221`.
 
 ## SDKs
 

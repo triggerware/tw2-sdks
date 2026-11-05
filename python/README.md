@@ -1,12 +1,14 @@
 The Triggerware Python SDK is an asynchronous Python client for a Triggerware server. It exposes Triggerware's tables, tools, queries, triggers, agents, connectors, runtimes, configuration, logging, cursors, and system operations as typed Python methods. Use it to communicate with Triggerware without manually constructing JSON-RPC requests. It also provides typed resource definitions and asynchronous helpers for streamed query results and trigger notifications.
 
+By default, a locally running Triggerware server accepts TCP SDK connections at `localhost:5221`.
+
 1. `TriggerwareClient(peer: rpc.Peer) -> None`
 
    This is used for creating a client around an existing JSON-RPC peer and exposing each Triggerware resource service.
 
 2. `async TriggerwareClient.connect_tcp(address: str) -> Self`
 
-   This is used for connecting to a Triggerware server over TCP and returning a ready client.
+   This is used for connecting to a Triggerware server over TCP and returning a ready client. Use `localhost:5221` for the default local server.
 
 3. `async TriggerwareClient.connect_ws(url: str, api_key: str) -> Self`
 

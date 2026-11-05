@@ -1,8 +1,10 @@
 The Triggerware Rust SDK is a typed client for communicating with a Triggerware server. It provides Rust methods for every supported Triggerware resource, including tables, queries, triggers, agents, tools, connectors, and runtimes. Use it to make JSON-RPC calls without manually constructing requests or decoding responses. It supports direct TCP connections and authenticated HTTP connections.
 
+By default, a locally running Triggerware server accepts TCP SDK connections at `localhost:5221`.
+
 1. `pub async fn TriggerwareClient::connect_tcp(addr: impl tokio::net::ToSocketAddrs) -> Result<TriggerwareClient>`
 
-   This is used for connecting to a Triggerware server over TCP and creating a client.
+   This is used for connecting to a Triggerware server over TCP and creating a client. Use `localhost:5221` for the default local server.
 
 2. `pub async fn TriggerwareClient::connect_http(url: &str, bearer_token: impl Into<String>) -> Result<TriggerwareClient>`
 

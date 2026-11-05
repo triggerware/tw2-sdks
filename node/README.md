@@ -1,12 +1,14 @@
 The Triggerware JavaScript SDK is a typed client for calling a Triggerware server from JavaScript or TypeScript. It exposes Triggerware resources such as tables, queries, triggers, agents, tools, and connectors through focused service objects. Use it to avoid building JSON-RPC requests and translating Triggerware's wire-format fields yourself. It also provides convenient cursor, saved-query, and trigger-watching interfaces for working with returned data.
 
+By default, a locally running Triggerware server accepts TCP SDK connections at `localhost:5221`.
+
 1. `new TriggerwareClient(peer: Peer): TriggerwareClient`
 
    This is used for creating a Triggerware client around an existing JSON-RPC peer.
 
 2. `TriggerwareClient.connectTcp(address: string): Promise<TriggerwareClient>`
 
-   This is used for connecting directly to a Triggerware server at a TCP address.
+   This is used for connecting directly to a Triggerware server at a TCP address. Use `localhost:5221` for the default local server.
 
 3. `TriggerwareClient.connectWs(url: string, apiKey: string): Promise<TriggerwareClient>`
 
