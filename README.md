@@ -29,6 +29,8 @@ triggerware start
 
 By default, a locally running Triggerware server accepts TCP SDK connections at `localhost:5221`.
 
+For more documentation, run `triggerware help`, or use the Triggerware plugin in Claude Code or Codex to ask questions.
+
 ## SDKs
 
 Triggerware supports [Python](python/README.md) (`pip install triggerware`), [Rust](rust/README.md) (`cargo add triggerware`), and [Node.js](node/README.md) (`npm install triggerware`).
