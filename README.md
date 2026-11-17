@@ -52,3 +52,19 @@ codex plugin add triggerware@triggerware
 claude plugin marketplace add triggerware/tw2-integrations
 claude plugin install triggerware@triggerware
 ```
+
+You can also test out the functionality of these plugins using our "MCP Tester." Install that here:
+
+### macOS
+
+```sh
+curl -fsSL https://tw2-releases.s3.us-east-2.amazonaws.com/mcp-tester/install.sh | sh
+```
+
+### Windows
+
+```powershell
+irm https://tw2-releases.s3.us-east-2.amazonaws.com/mcp-tester/install.ps1 | iex
+```
+
+This will install a binary "triggerware-mcp-tester" on your computer. When running the MCP tester
