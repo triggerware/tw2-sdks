@@ -67,4 +67,4 @@ curl -fsSL https://tw2-releases.s3.us-east-2.amazonaws.com/mcp-tester/install.sh
 irm https://tw2-releases.s3.us-east-2.amazonaws.com/mcp-tester/install.ps1 | iex
 ```
 
-This will install a binary "triggerware-mcp-tester" on your computer. When running the MCP tester
+Run triggerware-mcp-tester to open the web UI on port 8080 by default. You can specify a different port using the --port flag.
