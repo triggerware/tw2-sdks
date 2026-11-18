@@ -62,7 +62,11 @@ claude plugin install triggerware@triggerware
 
 ## Testing the Triggerware AI Chatbot
 
-You can also test out the functionality of the previously mentioned plugins using our "MCP Tester." Install that here:
+You can also test out the functionality of the previously mentioned plugins using our "MCP Tester."
+
+Run triggerware-mcp-tester to open the web UI on port 8080 by default. You can specify a different port using the --port flag.
+
+Install it here:
 
 ### macOS
 
@@ -76,4 +80,6 @@ curl -fsSL https://tw2-releases.s3.us-east-2.amazonaws.com/mcp-tester/install.sh
 irm https://tw2-releases.s3.us-east-2.amazonaws.com/mcp-tester/install.ps1 | iex
 ```
 
-Run triggerware-mcp-tester to open the web UI on port 8080 by default. You can specify a different port using the --port flag.
+### Linux
+
+(again, not done...)
