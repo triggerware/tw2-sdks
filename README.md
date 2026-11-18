@@ -20,8 +20,13 @@ curl -fsSL https://tw2-releases.s3.us-east-2.amazonaws.com/cli/install.sh | sh
 irm https://tw2-releases.s3.us-east-2.amazonaws.com/install.ps1 | iex
 irm https://tw2-releases.s3.us-east-2.amazonaws.com/cli/install.ps1 | iex
 ```
+### Linux
 
-Then run:
+(Nothing here... try the Mac version... it might work?)
+
+## Starting a Triggerware Server
+
+run:
 
 ```
 triggerware start
@@ -39,6 +44,8 @@ Triggerware supports [Python](python/README.md) (`pip install triggerware`), [Ru
 
 Install the Triggerware plugin to use Triggerware from Codex or Claude Code.
 
+Skip to the next section if your name is Swamy, Neil, or Don.
+
 ### Codex
 
 ```sh
@@ -53,7 +60,9 @@ claude plugin marketplace add triggerware/tw2-integrations
 claude plugin install triggerware@triggerware
 ```
 
-You can also test out the functionality of these plugins using our "MCP Tester." Install that here:
+## Testing the Triggerware AI Chatbot
+
+You can also test out the functionality of the previously mentioned plugins using our "MCP Tester." Install that here:
 
 ### macOS
 
